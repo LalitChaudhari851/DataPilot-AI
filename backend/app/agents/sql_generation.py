@@ -160,6 +160,9 @@ Generate a corrected version in valid {dialect_label} syntax.
             "error_agent": "sql_generation",
             "prompt_version": prompt_version,
             "selected_few_shots": selected_few_shot_ids,
+            "is_valid": None,
+            "validation_errors": [],
+            "sanitized_sql": "",
         }
 
 

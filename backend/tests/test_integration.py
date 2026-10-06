@@ -254,6 +254,7 @@ class TestConfigValidation:
         from pydantic import ValidationError
 
         env_backup = os.environ.get("ENV")
+        db_backup = os.environ.get("DB_URI")
         os.environ["ENV"] = "production"
         os.environ["DB_URI"] = "mysql+pymysql://test:test@localhost/test"
 
@@ -266,16 +267,23 @@ class TestConfigValidation:
                 config_module.Settings()
             assert "JWT_SECRET_KEY" in str(exc_info.value)
         finally:
-            if env_backup:
+            if env_backup is not None:
                 os.environ["ENV"] = env_backup
             else:
                 os.environ.pop("ENV", None)
-            os.environ.pop("DB_URI", None)
+            if db_backup is not None:
+                os.environ["DB_URI"] = db_backup
+            else:
+                os.environ.pop("DB_URI", None)
+            import app.config as config_module
+            reload(config_module)
 
     def test_development_allows_default_jwt(self):
         """Development mode should allow the default JWT key."""
         import os
 
+        env_backup = os.environ.get("ENV")
+        db_backup = os.environ.get("DB_URI")
         os.environ["ENV"] = "development"
         os.environ["DB_URI"] = "mysql+pymysql://test:test@localhost/test"
 
@@ -287,5 +295,13 @@ class TestConfigValidation:
             settings = config_module.Settings()
             assert settings.ENV == "development"
         finally:
-            os.environ.pop("ENV", None)
-            os.environ.pop("DB_URI", None)
+            if env_backup is not None:
+                os.environ["ENV"] = env_backup
+            else:
+                os.environ.pop("ENV", None)
+            if db_backup is not None:
+                os.environ["DB_URI"] = db_backup
+            else:
+                os.environ.pop("DB_URI", None)
+            import app.config as config_module
+            reload(config_module)

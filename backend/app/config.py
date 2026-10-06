@@ -21,7 +21,10 @@ class Settings(BaseSettings):
     ENV: str = Field(default="development", description="development | staging | production")
 
     # ── Database ─────────────────────────────────────────
-    DB_URI: str = Field(..., description="MySQL connection URI")
+    DB_URI: str = Field(
+        default="mysql+pymysql://root:testpassword@127.0.0.1:3306/chatbot",
+        description="MySQL connection URI",
+    )
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
     DB_POOL_TIMEOUT: int = 30

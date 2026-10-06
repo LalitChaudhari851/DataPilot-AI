@@ -20,6 +20,19 @@ import pytest
 # Ensure the backend directory is on the import path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+try:
+    import sentence_transformers  # noqa: F401
+    _HAS_SENTENCE_TRANSFORMERS = True
+except ImportError:
+    _HAS_SENTENCE_TRANSFORMERS = False
+
+
+def _ml_disabled():
+    """True if sentence-transformers is missing or ML is explicitly disabled."""
+    if not _HAS_SENTENCE_TRANSFORMERS:
+        return True
+    return os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes")
+
 
 # ────────────────────────────────────────────────
 # Group 1: SQLite Few-Shot Dataset Integrity
@@ -151,7 +164,7 @@ class TestDialectAwareFewShotSelector:
         assert sqlite_count >= 15, f"Expected ≥15 SQLite examples, got {sqlite_count}"
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_separate_embeddings_per_dialect(self):
@@ -167,7 +180,7 @@ class TestDialectAwareFewShotSelector:
         assert selector._embeddings_by_dialect["sqlite"] is not None
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_available_for_dialect(self):
@@ -181,7 +194,7 @@ class TestDialectAwareFewShotSelector:
         assert selector.available_for_dialect("postgres") is False
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_no_cross_contamination_sqlite(self):
@@ -198,7 +211,7 @@ class TestDialectAwareFewShotSelector:
             )
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_no_cross_contamination_mysql(self):
@@ -215,7 +228,7 @@ class TestDialectAwareFewShotSelector:
             )
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_sqlite_selection_returns_results(self):
@@ -229,7 +242,7 @@ class TestDialectAwareFewShotSelector:
         assert len(results) <= 3, f"Expected ≤3 results, got {len(results)}"
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_unknown_dialect_returns_empty(self):
@@ -242,7 +255,7 @@ class TestDialectAwareFewShotSelector:
         assert results == [], f"Expected empty list for unknown dialect, got {len(results)} results"
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_legacy_mode_no_dialect(self):
@@ -255,7 +268,7 @@ class TestDialectAwareFewShotSelector:
         assert len(results) > 0, "Legacy mode returned no results"
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_format_for_prompt(self):
@@ -271,7 +284,7 @@ class TestDialectAwareFewShotSelector:
         assert "SQL:" in formatted
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_data_leakage_prevention(self):
@@ -455,7 +468,7 @@ class TestBackwardCompatibility:
         assert len(selector._examples_by_dialect["default"]) > 0
 
     @pytest.mark.skipif(
-        os.environ.get("DISABLE_ML_INTENT", "false").lower() in ("true", "1", "yes"),
+        _ml_disabled(),
         reason="ML models disabled by environment",
     )
     def test_mysql_few_shot_still_works(self):

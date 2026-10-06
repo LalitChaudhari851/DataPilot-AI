@@ -191,6 +191,8 @@ class TestFewShotDatasetPhase8:
     def test_few_shot_selector_isolation(self):
         """DynamicFewShotSelector with dialect='sqlite' selects only sqlite examples."""
         selector = DynamicFewShotSelector()
+        if not selector.available:
+            pytest.skip("DynamicFewShotSelector requires sentence-transformers (not installed in CI)")
         results = selector.select("What are the top product categories by sales volume?", k=3, dialect="sqlite")
 
         assert len(results) > 0
