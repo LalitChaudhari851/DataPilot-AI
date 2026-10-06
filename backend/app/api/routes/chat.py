@@ -42,6 +42,8 @@ def create_chat_router(orchestrator, auth_dep, cache, rate_limiter, tracer, expl
             conversation_history=request.history,
             tenant_id=current_user.get("tenant_id", "default"),
             user_role=current_user.get("role", "viewer"),
+            clarification_response=request.clarification_response,
+            active_clarification=request.active_clarification,
         )
 
         # Trace the query
@@ -64,10 +66,13 @@ def create_chat_router(orchestrator, auth_dep, cache, rate_limiter, tracer, expl
             "insights": result.get("insights", []),
             "follow_ups": result.get("follow_up_questions", []),
             "error": result.get("error"),
+            "requires_clarification": result.get("requires_clarification", False),
+            "clarification": result.get("active_clarification"),
+            "semantic_assumptions": result.get("semantic_assumptions", []),
         }
 
         # Cache successful results
-        if not result.get("error") and result.get("query_results"):
+        if not result.get("error") and result.get("query_results") and not result.get("requires_clarification"):
             cache.set(request.question, response_data, current_user.get("tenant_id", "default"))
 
         return QueryResult(**response_data)
@@ -88,9 +93,12 @@ def create_chat_router(orchestrator, auth_dep, cache, rate_limiter, tracer, expl
                 conversation_history=request.history,
                 tenant_id=current_user.get("tenant_id", "default"),
                 user_role=current_user.get("role", "viewer"),
+                clarification_response=request.clarification_response,
+                active_clarification=request.active_clarification,
             ):
                 event_type = event.get("type", "message")
                 yield _sse_event(event_type, event)
+
 
         return StreamingResponse(
             event_generator(),

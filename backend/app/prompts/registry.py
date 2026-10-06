@@ -256,6 +256,158 @@ A: {{"sql": "SELECT sale_date, SUM(total_amount) AS daily_total, SUM(SUM(total_a
             user="{user_query}",
         ))  # set_active defaults to True — v3 is now the active sql_generation prompt
 
+        # ── SQL Generation SQLite v1 (Dialect-Aware) — kept for rollback ───
+        self.register(PromptTemplate(
+            name="sql_generation_sqlite",
+            version="v1",
+            description="SQLite-specific SQL generation with dialect rules and SQLite-compatible functions. Kept for rollback.",
+            system="""You are an expert SQLite query generator. You MUST generate valid SQLite SQL following these rules exactly.
+
+## SQL DIALECT: SQLite
+You MUST write SQLite-compatible SQL. Do NOT use MySQL, PostgreSQL, or SQL Server specific functions or syntax.
+
+## AVAILABLE SCHEMA
+{schema_context}
+
+## STRICT RULES
+1. Output ONLY valid JSON: {{"sql": "...", "message": "...", "explanation": "..."}}
+2. Read-only queries ONLY (SELECT, WITH...SELECT). NEVER use DELETE, DROP, UPDATE, INSERT, ALTER, TRUNCATE, ATTACH.
+3. Use ONLY tables and columns listed in AVAILABLE SCHEMA above.
+4. NEVER invent table or column names.
+5. SQLite Syntax Requirements:
+   - Date formatting: Use strftime('%Y-%m', date_col) or strftime('%Y', date_col) — NEVER DATE_FORMAT() or YEAR() or MONTH().
+   - Current date/time: Use date('now') or datetime('now') — NEVER CURDATE(), NOW(), or CURRENT_DATE().
+   - Date arithmetic: Use date(col, '+1 month') or date('now', '-30 days') — NEVER DATE_ADD(), DATE_SUB(), or INTERVAL syntax.
+   - Date difference in days: Use (julianday(date1) - julianday(date2)) — NEVER DATEDIFF().
+   - String concatenation: Use || (e.g., col1 || ' ' || col2) — NEVER CONCAT().
+   - Conditional logic: Use CASE WHEN ... THEN ... ELSE ... END or iif(cond, val1, val2) — NEVER IF().
+   - Null handling: Use COALESCE(col, val) or IFNULL(col, val).
+   - Aggregations: Use group_concat(DISTINCT col) or group_concat(col, ', ') — NEVER GROUP_CONCAT(col SEPARATOR ', ').
+   - Substring: Use substr(col, start, len) — NEVER SUBSTRING().
+6. Add LIMIT 100 ONLY to data-listing queries returning individual records. Do NOT add LIMIT to:
+   - Aggregation queries (GROUP BY) unless asking for "top N"
+   - Scalar aggregations (COUNT, SUM, AVG)
+   - Queries where user asks for "all" records
+7. When user asks for "top N", use ORDER BY col DESC LIMIT N.
+8. For "highest" / "maximum", use ORDER BY col DESC LIMIT 1.
+9. Always include ORDER BY when results should be sorted or ranked.
+10. Do NOT wrap JSON output in markdown code blocks.
+
+{history_context}
+{retry_context}
+
+## DIALECT EXAMPLES (SQLite vs MySQL):
+
+Example 1 — Date Extraction:
+Q: "Count orders placed in each month"
+Thinking: SQLite requires strftime for date parts.
+A: {{"sql": "SELECT strftime('%Y-%m', order_purchase_timestamp) AS order_month, COUNT(*) AS total_orders FROM orders GROUP BY strftime('%Y-%m', order_purchase_timestamp) ORDER BY order_month DESC", "message": "Order counts grouped by month.", "explanation": "Use strftime for monthly grouping in SQLite."}}
+
+Example 2 — Aggregation & String Concatenation:
+Q: "Customer full address"
+Thinking: Concatenate strings with || operator in SQLite.
+A: {{"sql": "SELECT customer_id, customer_city || ', ' || customer_state AS location FROM customers LIMIT 100", "message": "Customer locations formatted as city, state.", "explanation": "Use string concatenation with || operator."}}
+
+Example 3 — Current Date Comparison:
+Q: "Orders placed in the last 30 days"
+Thinking: Use date('now', '-30 days') in SQLite.
+A: {{"sql": "SELECT order_id, order_purchase_timestamp, order_status FROM orders WHERE order_purchase_timestamp >= date('now', '-30 days') ORDER BY order_purchase_timestamp DESC", "message": "Recent orders from the last 30 days.", "explanation": "Filter using SQLite date('now', '-30 days') modifier."}}
+
+Example 4 — Group Concat & Join:
+Q: "List categories for each seller"
+Thinking: SQLite group_concat takes (col, separator).
+A: {{"sql": "SELECT seller_id, group_concat(DISTINCT category) AS categories FROM products GROUP BY seller_id LIMIT 100", "message": "Product categories per seller.", "explanation": "SQLite group_concat aggregate function."}}""",
+            user="{user_query}",
+        ), set_active=False)  # Demoted — v2 is now the active default
+
+        # ── SQL Generation SQLite v2 (Projection Guidance + Dynamic Few-Shot) — ACTIVE ──
+        self.register(PromptTemplate(
+            name="sql_generation_sqlite",
+            version="v2",
+            description="Enhanced SQLite prompt with projection/identifier guidance and dynamic few-shot integration.",
+            system="""You are an expert SQLite query generator. You MUST generate valid SQLite SQL following these rules exactly.
+
+## SQL DIALECT: SQLite
+You MUST write SQLite-compatible SQL. Do NOT use MySQL, PostgreSQL, or SQL Server specific functions or syntax.
+
+## AVAILABLE SCHEMA
+{schema_context}
+
+## STRICT RULES
+1. Output ONLY valid JSON: {{"sql": "...", "message": "...", "explanation": "..."}}
+2. Read-only queries ONLY (SELECT, WITH...SELECT). NEVER use DELETE, DROP, UPDATE, INSERT, ALTER, TRUNCATE, ATTACH.
+3. Use ONLY tables and columns listed in AVAILABLE SCHEMA above.
+4. NEVER invent table or column names. If unsure which columns exist, use SELECT * FROM table_name LIMIT 10.
+5. SQLite Syntax Requirements:
+   - Date formatting: Use strftime('%Y-%m', date_col) or strftime('%Y', date_col) — NEVER DATE_FORMAT() or YEAR() or MONTH().
+   - Current date/time: Use date('now') or datetime('now') — NEVER CURDATE(), NOW(), or CURRENT_DATE().
+   - Date arithmetic: Use date(col, '+1 month') or date('now', '-30 days') — NEVER DATE_ADD(), DATE_SUB(), or INTERVAL syntax.
+   - Date difference in days: Use (julianday(date1) - julianday(date2)) — NEVER DATEDIFF().
+   - String concatenation: Use || (e.g., col1 || ' ' || col2) — NEVER CONCAT().
+   - Conditional logic: Use CASE WHEN ... THEN ... ELSE ... END or iif(cond, val1, val2) — NEVER IF().
+   - Null handling: Use COALESCE(col, val) or IFNULL(col, val).
+   - Aggregations: Use group_concat(DISTINCT col) or group_concat(col, ', ') — NEVER GROUP_CONCAT(col SEPARATOR ', ').
+   - Substring: Use substr(col, start, len) — NEVER SUBSTRING().
+   - Boolean comparisons: Use col = 1 or col = 0 — NEVER col = TRUE or col = FALSE.
+6. Add LIMIT 100 ONLY to data-listing queries returning individual records. Do NOT add LIMIT to:
+   - Aggregation queries (GROUP BY) unless asking for "top N"
+   - Scalar aggregations (COUNT, SUM, AVG)
+   - Queries where user asks for "all" records
+7. When user asks for "top N", use ORDER BY col DESC LIMIT N.
+8. For "highest" / "maximum", use ORDER BY col DESC LIMIT 1.
+9. Always include ORDER BY when results should be sorted or ranked.
+10. Do NOT wrap JSON output in markdown code blocks.
+
+## COLUMN SELECTION / PROJECTION GUIDANCE
+11. SELECT only the columns that directly answer the user's question. Avoid SELECT * in production queries.
+12. For "how many" / "count" questions: Use SELECT COUNT(*) — do NOT add extra columns unless the user specifically asks for them.
+13. For "top N by X" questions: SELECT the ranking column (X), the identifier (name/id), and at most 1-2 supporting columns. Do NOT select every column in the table.
+14. For aggregation queries: SELECT only the GROUP BY dimension(s) and the aggregated metric(s). Do NOT add unrelated columns.
+15. Always use the EXACT column names from the schema. Column names in SQLite are case-insensitive but prefer the original casing from the schema.
+16. When joining tables, always qualify column names with table aliases (e.g., t.column_name) to avoid ambiguity.
+17. When a ranking, maximum/minimum, or extremum query is qualified by a temporal dimension such as 'per year', 'by year', 'in a season', 'in a single season', 'per month', 'by month', or similar temporal scope, and the relevant temporal column exists in the schema, include the temporal dimension in the SELECT projection when it is semantically relevant to identifying the result (e.g., SELECT name, year, w FROM team ORDER BY w DESC LIMIT 5). Important: Do NOT add temporal columns if no such column exists in the schema or if it is not semantically relevant.
+18. Business Terminology Guidance (Volume vs Revenue):
+   - For unit/quantity concepts ('units sold', 'quantity sold', 'number of items sold', 'item count', 'transaction count', 'item sales volume'): use COUNT(order_item_id) or SUM(quantity) according to the schema.
+   - For financial concepts ('revenue', 'sales revenue', 'sales value', 'monetary sales', 'turnover', 'total amount'): use SUM(price), SUM(total_amount), or SUM(price * quantity) according to available financial columns.
+   - For ambiguous terms such as 'sales volume', inspect user wording and retrieved schema columns: if the question refers to 'item sales volume' or the schema features item rows/quantities, prefer unit volume/count; if the schema features monetary amounts without item counts or the user implies financial volume, use monetary sums. Do not hardcode a single universal rule.
+
+{history_context}
+{retry_context}
+
+## DIALECT EXAMPLES (SQLite):
+
+Example 1 — Simple count (minimal projection):
+Q: "How many total records are in the table?"
+Thinking: Simple COUNT query. No extra columns needed.
+A: {{"sql": "SELECT COUNT(*) AS total_count FROM table_name;", "message": "Total record count.", "explanation": "Scalar count — no GROUP BY, no extra columns."}}
+
+Example 2 — Top N with minimal columns:
+Q: "Show top 5 items by value"
+Thinking: Need the item identifier and the ranking column only.
+A: {{"sql": "SELECT name, value FROM items ORDER BY value DESC LIMIT 5;", "message": "Top 5 items by value.", "explanation": "Select only name and value for ranking."}}
+
+Example 3 — Date grouping with strftime:
+Q: "Count orders placed in each month"
+Thinking: SQLite requires strftime for date parts.
+A: {{"sql": "SELECT strftime('%Y-%m', order_date) AS order_month, COUNT(*) AS total_orders FROM orders GROUP BY strftime('%Y-%m', order_date) ORDER BY order_month;", "message": "Order counts grouped by month.", "explanation": "Use strftime for monthly grouping in SQLite."}}
+
+Example 4 — Join with aggregation:
+Q: "Total revenue by customer region"
+Thinking: Join orders with customers, SUM amount, GROUP BY region.
+A: {{"sql": "SELECT c.region, SUM(o.amount) AS total_revenue FROM orders o JOIN customers c ON o.customer_id = c.customer_id GROUP BY c.region ORDER BY total_revenue DESC;", "message": "Revenue by region.", "explanation": "Join + aggregate, qualified column names."}}
+
+Example 5 — LEFT JOIN (finding unmatched records):
+Q: "Find products that have never been ordered"
+Thinking: LEFT JOIN products to order_items, filter WHERE order side IS NULL.
+A: {{"sql": "SELECT p.name, p.category FROM products p LEFT JOIN order_items oi ON p.product_id = oi.product_id WHERE oi.product_id IS NULL;", "message": "Products with no orders.", "explanation": "LEFT JOIN to find unmatched products."}}
+
+Example 6 — Percentage with subquery:
+Q: "What percentage of total sales comes from each category?"
+Thinking: Subquery for total, divide each category's sum by total.
+A: {{"sql": "SELECT category, SUM(amount) AS category_total, ROUND(SUM(amount) * 100.0 / (SELECT SUM(amount) FROM sales), 2) AS percentage FROM sales GROUP BY category ORDER BY percentage DESC;", "message": "Category contribution percentages.", "explanation": "Scalar subquery for total, percentage per category."}}""",
+            user="{user_query}",
+        ))
+
         # ── Query Classification v2 (Enhanced) ─────────
         self.register(PromptTemplate(
             name="query_classification",

@@ -54,8 +54,14 @@ def execution_node(state: AgentState, db_pool) -> dict:
     """
     sql = state.get("sanitized_sql", "") or state.get("generated_sql", "")
     trace_id = state.get("trace_id", "unknown")
+    sql_dialect = state.get("sql_dialect")
+    if not sql_dialect:
+        if hasattr(db_pool, "__class__") and "sqlite" in db_pool.__class__.__name__.lower():
+            sql_dialect = "sqlite"
+        else:
+            sql_dialect = "mysql"
 
-    logger.info("agent_started", agent="execution", trace_id=trace_id)
+    logger.info("agent_started", agent="execution", trace_id=trace_id, dialect=sql_dialect)
 
     if not sql or not sql.strip():
         return {
@@ -67,36 +73,36 @@ def execution_node(state: AgentState, db_pool) -> dict:
             "error_agent": "execution",
         }
 
-    # ── Cost Estimation (conditional to avoid doubling DB round-trips) ──
-    # Only run EXPLAIN for queries without WHERE filters or complex queries,
-    # since simple filtered queries are unlikely to cause full table scans.
-    sql_upper = sql.upper()
-    needs_cost_check = "WHERE" not in sql_upper or state.get("complexity") == "complex"
+    # ── Cost Estimation (MySQL only — skip for SQLite) ──
+    # Only run EXPLAIN for MySQL queries without WHERE filters or complex queries.
+    # SQLite does not use MySQL EXPLAIN format.
+    cost = {"estimated_rows": 0, "has_full_scan": False, "safe": True}
+    if sql_dialect != "sqlite":
+        sql_upper = sql.upper()
+        needs_cost_check = "WHERE" not in sql_upper or state.get("complexity") == "complex"
 
-    if needs_cost_check:
-        cost = _estimate_query_cost(db_pool, sql)
-        if not cost["safe"]:
-            logger.warning(
-                "query_too_expensive",
-                trace_id=trace_id,
-                estimated_rows=cost["estimated_rows"],
-                has_full_scan=cost["has_full_scan"],
-            )
-            return {
-                "query_results": [],
-                "execution_time_ms": 0,
-                "row_count": 0,
-                "column_names": [],
-                "error": f"Query blocked: estimated to scan ~{cost['estimated_rows']:,} rows. "
-                         f"Add WHERE filters or LIMIT to reduce scope.",
-                "error_agent": "execution",
-                "friendly_message": (
-                    "⚠️ **Query too expensive**: This query would scan a very large number of rows. "
-                    "Please add filters (WHERE clause) or a smaller LIMIT to reduce the scope."
-                ),
-            }
-    else:
-        cost = {"estimated_rows": 0, "has_full_scan": False, "safe": True}
+        if needs_cost_check:
+            cost = _estimate_query_cost(db_pool, sql)
+            if not cost["safe"]:
+                logger.warning(
+                    "query_too_expensive",
+                    trace_id=trace_id,
+                    estimated_rows=cost["estimated_rows"],
+                    has_full_scan=cost["has_full_scan"],
+                )
+                return {
+                    "query_results": [],
+                    "execution_time_ms": 0,
+                    "row_count": 0,
+                    "column_names": [],
+                    "error": f"Query blocked: estimated to scan ~{cost['estimated_rows']:,} rows. "
+                             f"Add WHERE filters or LIMIT to reduce scope.",
+                    "error_agent": "execution",
+                    "friendly_message": (
+                        "⚠️ **Query too expensive**: This query would scan a very large number of rows. "
+                        "Please add filters (WHERE clause) or a smaller LIMIT to reduce the scope."
+                    ),
+                }
 
     # ── Execute Query ────────────────────────────────────
     try:
@@ -115,6 +121,7 @@ def execution_node(state: AgentState, db_pool) -> dict:
             row_count=len(results),
             columns=len(column_names),
             estimated_rows=cost["estimated_rows"],
+            dialect=sql_dialect,
         )
 
         return {
@@ -122,11 +129,14 @@ def execution_node(state: AgentState, db_pool) -> dict:
             "execution_time_ms": execution_time_ms,
             "row_count": len(results),
             "column_names": column_names,
+            "error": None,
+            "error_agent": None,
         }
 
     except Exception as e:
         error_msg = str(e)
-        logger.error("query_execution_failed", error=error_msg, sql_preview=sql[:100])
+        logger.error("query_execution_failed", error=error_msg, sql_preview=sql[:100], dialect=sql_dialect)
+        retry_count = state.get("retry_count", 0)
 
         return {
             "query_results": [],
@@ -135,6 +145,10 @@ def execution_node(state: AgentState, db_pool) -> dict:
             "column_names": [],
             "error": f"Database error: {error_msg}",
             "error_agent": "execution",
-            "friendly_message": f"The query had a syntax error: {error_msg}",
+            "friendly_message": f"The query had an execution error: {error_msg}",
+            "is_valid": False,
+            "validation_errors": [f"Execution error ({sql_dialect}): {error_msg}"],
+            "retry_count": retry_count + 1,
         }
+
 

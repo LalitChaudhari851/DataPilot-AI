@@ -203,6 +203,13 @@ async def lifespan(app: FastAPI):
         app.include_router(monitoring_router)
         _app_state["metrics_collector"] = get_metrics_collector()
 
+        @app.get("/metrics", tags=["Monitoring"])
+        def root_metrics_endpoint():
+            """Standard root Prometheus metrics endpoint."""
+            from app.observability.metrics import get_prometheus_metrics, get_prometheus_content_type
+            from fastapi import Response
+            return Response(content=get_prometheus_metrics(), media_type=get_prometheus_content_type())
+
         # ── Conversations API ─────────────────────────────
         from app.api.routes.conversations import create_conversations_router
         conv_router = create_conversations_router(conversation_manager)

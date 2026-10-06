@@ -25,8 +25,9 @@ def sql_generation_node(state: AgentState, llm_router) -> dict:
     retry_count = state.get("retry_count", 0)
     validation_errors = state.get("validation_errors", [])
     trace_id = state.get("trace_id", "unknown")
+    sql_dialect = state.get("sql_dialect", "mysql")
 
-    logger.info("agent_started", agent="sql_generation", trace_id=trace_id, retry=retry_count)
+    logger.info("agent_started", agent="sql_generation", trace_id=trace_id, retry=retry_count, dialect=sql_dialect)
 
     # Build conversation history context
     history_text = ""
@@ -36,35 +37,49 @@ def sql_generation_node(state: AgentState, llm_router) -> dict:
         for h in recent:
             history_text += f"User: {h.get('user', '')}\nSQL: {h.get('sql', '')}\n"
 
-    # If this is a retry, include the validation errors for self-correction
+    # If this is a retry, include the validation/execution errors and dialect for self-correction
     retry_context = ""
     if retry_count > 0 and validation_errors:
+        dialect_label = (sql_dialect or "SQL").upper()
         retry_context = f"""
-⚠️ YOUR PREVIOUS SQL WAS REJECTED. Fix these issues:
+⚠️ YOUR PREVIOUS SQL WAS REJECTED. Fix these issues (Dialect: {dialect_label}):
 {chr(10).join(f'  - {err}' for err in validation_errors)}
 
 Previous attempt: {state.get('generated_sql', 'N/A')}
-Generate a corrected version.
+Generate a corrected version in valid {dialect_label} syntax.
 """
 
-    # Dynamic few-shot: select similar examples from eval dataset
+    # Dynamic few-shot: dialect-aware selection (MySQL examples for MySQL, SQLite for SQLite)
     dynamic_examples = ""
+    selected_few_shot_ids = []
     try:
         from app.prompts.few_shot import get_few_shot_selector
         selector = get_few_shot_selector()
-        similar = selector.select(user_query, k=3)
+        # Map dialect to few-shot pool; default to "mysql" for backward compatibility
+        few_shot_dialect = sql_dialect if sql_dialect in ("mysql", "sqlite") else "mysql"
+        similar = selector.select(user_query, k=3, dialect=few_shot_dialect)
         if similar:
             dynamic_examples = selector.format_for_prompt(similar)
-            logger.debug("dynamic_few_shot_selected", count=len(similar))
+            selected_few_shot_ids = [ex.get("id", ex.get("question", "")) for ex in similar]
+            logger.debug("dynamic_few_shot_selected", count=len(similar), dialect=few_shot_dialect, ids=selected_few_shot_ids)
     except Exception as e:
         logger.debug("dynamic_few_shot_unavailable", error=str(e))
 
-    # Combine schema context with dynamic examples
+    # Combine schema context with semantic context and dynamic examples
     full_context = context
+    semantic_context = state.get("semantic_context")
+    if semantic_context:
+        full_context = full_context + "\n\n" + semantic_context
     if dynamic_examples:
-        full_context = context + "\n" + dynamic_examples
+        full_context = full_context + "\n\n" + dynamic_examples
 
-    prompt_template = get_prompt_registry().get("sql_generation")
+    # Dialect-aware prompt selection
+    registry = get_prompt_registry()
+    if sql_dialect == "sqlite":
+        prompt_template = registry.get("sql_generation_sqlite")
+    else:
+        prompt_template = registry.get("sql_generation")
+
     prompt_version = prompt_template.version
     messages = prompt_template.render(
         schema_context=full_context,
@@ -74,9 +89,33 @@ Generate a corrected version.
     )
 
     try:
+        from app.config import get_settings
+        settings = get_settings()
+
+        # Phase 8: Deterministic evaluation mode support
+        eval_mode = state.get("eval_mode", False) or settings.PLAINSQL_EVAL_MODE
+        if eval_mode:
+            gen_temp = state.get("eval_temperature", settings.PLAINSQL_EVAL_TEMPERATURE)
+            gen_seed = state.get("eval_seed", settings.PLAINSQL_EVAL_SEED)
+            gen_pinned = state.get("pinned_provider", settings.PLAINSQL_EVAL_PROVIDER)
+        else:
+            gen_temp = 0.1
+            gen_seed = None
+            gen_pinned = None
+
         # Use higher quality model for complex queries
         model_pref = "accurate" if state.get("complexity") == "complex" else "default"
-        response = llm_router.generate(messages, model_preference=model_pref, max_tokens=1024, temperature=0.1)
+        gen_kwargs = {
+            "model_preference": model_pref,
+            "max_tokens": 1024,
+            "temperature": gen_temp,
+        }
+        if gen_seed is not None:
+            gen_kwargs["seed"] = gen_seed
+        if gen_pinned:
+            gen_kwargs["pinned_provider"] = gen_pinned
+
+        response = llm_router.generate(messages, **gen_kwargs)
 
         # Parse structured response
         sql_query, explanation, message = _parse_llm_response(response)
@@ -90,6 +129,7 @@ Generate a corrected version.
                 "error": "Empty SQL output from LLM",
                 "error_agent": "sql_generation",
                 "prompt_version": prompt_version,
+                "selected_few_shots": selected_few_shot_ids,
             }
 
         # Clean SQL
@@ -100,15 +140,18 @@ Generate a corrected version.
             "sql_explanation": explanation,
             "friendly_message": message,
             "prompt_version": prompt_version,
-            # Clear stale validation state from previous retry cycle.
-            # Without this, LangGraph merges old is_valid=False into the
-            # new state, causing route_validation to loop forever.
+            "selected_few_shots": selected_few_shot_ids,
+            "eval_mode": eval_mode,
+            "llm_provider": gen_pinned or getattr(llm_router, "default_provider", "unknown"),
+            # Clear stale validation/execution state from previous retry cycle.
             "is_valid": None,
             "validation_errors": [],
             "sanitized_sql": "",
+            "error": None,
+            "error_agent": None,
         }
     except Exception as e:
-        logger.error("sql_generation_failed", error=str(e))
+        logger.error("sql_generation_failed", error=str(e), trace_id=trace_id)
         return {
             "generated_sql": "",
             "sql_explanation": "",
@@ -116,6 +159,7 @@ Generate a corrected version.
             "error": f"SQL generation failed: {str(e)}",
             "error_agent": "sql_generation",
             "prompt_version": prompt_version,
+            "selected_few_shots": selected_few_shot_ids,
         }
 
 

@@ -313,16 +313,27 @@ class ModelRouter:
         # Total deadline prevents thread pool exhaustion under LLM degradation
         deadline = time.monotonic() + timeout
 
-        # Determine target provider
-        target = self.routing.get(model_preference, self.default_provider)
+        # Provider pinning for strict deterministic evaluation (Phase 8)
+        pinned_provider = kwargs.pop("pinned_provider", None)
+        if pinned_provider:
+            if pinned_provider not in self.providers:
+                raise RuntimeError(
+                    f"Pinned provider '{pinned_provider}' is not configured/available. "
+                    f"Configured providers: {list(self.providers.keys())}"
+                )
+            target = pinned_provider
+            fallback_chain = [pinned_provider]
+        else:
+            # Determine target provider
+            target = self.routing.get(model_preference, self.default_provider)
 
-        # Build fallback chain: target → default → all others
-        fallback_chain = [target]
-        if self.default_provider not in fallback_chain:
-            fallback_chain.append(self.default_provider)
-        for name in self.providers:
-            if name not in fallback_chain:
-                fallback_chain.append(name)
+            # Build fallback chain: target → default → all others
+            fallback_chain = [target]
+            if self.default_provider not in fallback_chain:
+                fallback_chain.append(self.default_provider)
+            for name in self.providers:
+                if name not in fallback_chain:
+                    fallback_chain.append(name)
 
         # Try each provider in order
         last_error = None
@@ -397,6 +408,8 @@ class ModelRouter:
                         break
                     time.sleep(backoff)
 
+        if pinned_provider:
+            raise RuntimeError(f"Pinned evaluation provider '{pinned_provider}' failed: {last_error}")
         raise RuntimeError(f"All LLM providers failed. Last error: {last_error}")
 
     def get_provider_status(self) -> dict[str, dict]:
@@ -433,9 +446,23 @@ class ModelRouter:
         import asyncio
 
         # Resolve target provider
-        target = self.routing.get(model_preference, self.default_provider)
+        pinned_provider = kwargs.get("pinned_provider")
+        if pinned_provider:
+            if pinned_provider not in self.providers:
+                raise RuntimeError(
+                    f"Pinned provider '{pinned_provider}' is not configured/available. "
+                    f"Configured providers: {list(self.providers.keys())}"
+                )
+            target = pinned_provider
+        else:
+            target = self.routing.get(model_preference, self.default_provider)
+
         provider = self.providers.get(target)
         breaker = self.breakers.get(target)
+
+        # In strict eval mode, do not proceed if breaker is open
+        if pinned_provider and breaker and not breaker.is_available():
+            raise RuntimeError(f"Pinned evaluation provider '{pinned_provider}' circuit breaker is OPEN.")
 
         # Try native async on Groq first
         if provider and hasattr(provider, 'agenerate') and (not breaker or breaker.is_available()):
@@ -469,6 +496,8 @@ class ModelRouter:
                 logger.warning("async_native_failed", provider=target, error=str(e))
                 if breaker:
                     breaker.record_failure()
+                if pinned_provider:
+                    raise RuntimeError(f"Pinned evaluation provider '{pinned_provider}' failed: {str(e)}") from e
                 # Fall through to thread-wrapped sync
 
         # Fallback: thread-wrapped sync generate() with full fallback chain
@@ -532,3 +561,7 @@ class ModelRouter:
         for word in response.split(" "):
             yield word + " "
             await asyncio.sleep(0.01)  # Small delay for streaming UX
+
+
+# Alias for convenience
+LLMRouter = ModelRouter

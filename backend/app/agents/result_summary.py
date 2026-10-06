@@ -10,6 +10,7 @@ Architecture:
     sql_generation (LLM guesses message) → execution (real data) → result_summary (replaces message with ground truth)
 """
 
+import os
 import structlog
 from typing import Optional
 
@@ -48,6 +49,14 @@ def result_summary_node(state: AgentState, llm_router=None) -> dict:
     # If no results (error, empty, or chat intent), keep the existing message
     if not results or not columns:
         return {}
+
+    # In eval mode, use deterministic summary immediately to avoid blocking on LLM rate limits
+    eval_mode = state.get("eval_mode", False) or os.getenv("PLAINSQL_EVAL_MODE", "false").lower() in ("true", "1")
+    if eval_mode:
+        deterministic_message = _build_deterministic_summary(
+            user_query, results, columns, row_count, execution_time_ms
+        )
+        return {"friendly_message": deterministic_message}
 
     # ── Strategy 1: LLM-grounded summary (preferred) ─────────
     # Use tight timeout to avoid blocking on rate limits (Groq free tier: 12K TPM)

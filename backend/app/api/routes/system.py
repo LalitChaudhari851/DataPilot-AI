@@ -134,10 +134,11 @@ def create_system_router(auth_service, auth_dep, db_pool, rag_retriever, llm_rou
         dashboard = tracer.get_dashboard_metrics()
         return AnalyticsResponse(**dashboard)
 
-    # ── Health Route ─────────────────────────────────────
+    # ── Health & Readiness Routes ─────────────────────────
 
     health_router = APIRouter(tags=["Health"])
 
+    @health_router.get("/health", response_model=HealthResponse)
     @health_router.get("/api/v1/health", response_model=HealthResponse)
     def health_check():
         """System health check — no auth required."""
@@ -168,8 +169,49 @@ def create_system_router(auth_service, auth_dep, db_pool, rag_retriever, llm_rou
             uptime_seconds=round(_time.time() - start_time, 2),
         )
 
-    # NOTE: Prometheus metrics endpoint moved to /api/v1/metrics/prometheus
-    # in monitoring.py to avoid duplicate metrics systems.
+    @health_router.get("/ready")
+    @health_router.get("/api/v1/ready")
+    def readiness_check():
+        """Readiness check for load balancers and orchestrators — verifies dependencies."""
+        checks = {}
+        all_ready = True
+
+        # 1. Database connectivity
+        try:
+            db_pool.get_tables()
+            checks["database"] = {"status": "ok"}
+        except Exception as e:
+            checks["database"] = {"status": "error", "detail": str(e)}
+            all_ready = False
+
+        # 2. ChromaDB RAG accessibility
+        try:
+            count = rag_retriever.collection.count()
+            checks["chromadb"] = {"status": "ok", "indexed_tables": count}
+        except Exception as e:
+            checks["chromadb"] = {"status": "error", "detail": str(e)}
+            all_ready = False
+
+        # 3. LLM Router configuration
+        try:
+            providers = llm_router.list_providers()
+            if providers:
+                checks["llm_router"] = {"status": "ok", "providers": providers}
+            else:
+                checks["llm_router"] = {"status": "warning", "message": "No active providers"}
+        except Exception as e:
+            checks["llm_router"] = {"status": "error", "detail": str(e)}
+            all_ready = False
+
+        status_code = 200 if all_ready else 503
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=status_code,
+            content={
+                "status": "ready" if all_ready else "not_ready",
+                "checks": checks,
+            },
+        )
 
 
     @health_router.get("/api/v1/pool-status")

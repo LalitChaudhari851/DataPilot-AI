@@ -21,13 +21,21 @@ class HuggingFaceProvider(BaseLLMProvider):
     def generate(self, messages: list[dict], **kwargs) -> str:
         max_tokens = kwargs.get("max_tokens", 1024)
         temperature = kwargs.get("temperature", 0.1)
+        seed = kwargs.get("seed")
+        top_p = kwargs.get("top_p")
 
-        response = self.client.chat_completion(
-            messages=messages,
-            model=self.model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-        )
+        call_kwargs = {
+            "messages": messages,
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if seed is not None:
+            call_kwargs["seed"] = seed
+        if top_p is not None:
+            call_kwargs["top_p"] = top_p
+
+        response = self.client.chat_completion(**call_kwargs)
         return response.choices[0].message.content
 
     def health_check(self) -> bool:
@@ -67,13 +75,21 @@ class OpenAIProvider(BaseLLMProvider):
         client = self._get_client()
         max_tokens = kwargs.get("max_tokens", 1024)
         temperature = kwargs.get("temperature", 0.1)
+        seed = kwargs.get("seed")
+        top_p = kwargs.get("top_p")
 
-        response = client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-        )
+        call_kwargs = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if seed is not None:
+            call_kwargs["seed"] = seed
+        if top_p is not None:
+            call_kwargs["top_p"] = top_p
+
+        response = client.chat.completions.create(**call_kwargs)
         return response.choices[0].message.content
 
     def health_check(self) -> bool:
@@ -149,16 +165,22 @@ class OllamaProvider(BaseLLMProvider):
     def generate(self, messages: list[dict], **kwargs) -> str:
         import requests
 
+        options = {
+            "temperature": kwargs.get("temperature", 0.1),
+            "num_predict": kwargs.get("max_tokens", 1024),
+        }
+        if kwargs.get("seed") is not None:
+            options["seed"] = kwargs.get("seed")
+        if kwargs.get("top_p") is not None:
+            options["top_p"] = kwargs.get("top_p")
+
         response = requests.post(
             f"{self.base_url}/api/chat",
             json={
                 "model": self.model,
                 "messages": messages,
                 "stream": False,
-                "options": {
-                    "temperature": kwargs.get("temperature", 0.1),
-                    "num_predict": kwargs.get("max_tokens", 1024),
-                },
+                "options": options,
             },
             timeout=60,
         )
@@ -241,14 +263,22 @@ class GroqProvider(BaseLLMProvider):
         model = kwargs.pop("model_override", self.model)
         max_tokens = kwargs.get("max_tokens", 1024)
         temperature = kwargs.get("temperature", 0.1)
+        seed = kwargs.get("seed")
+        top_p = kwargs.get("top_p")
+
+        call_kwargs = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if seed is not None:
+            call_kwargs["seed"] = seed
+        if top_p is not None:
+            call_kwargs["top_p"] = top_p
 
         start = time.perf_counter()
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-        )
+        response = client.chat.completions.create(**call_kwargs)
         elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
 
         content = response.choices[0].message.content
@@ -275,14 +305,22 @@ class GroqProvider(BaseLLMProvider):
         model = kwargs.pop("model_override", self.model)
         max_tokens = kwargs.get("max_tokens", 1024)
         temperature = kwargs.get("temperature", 0.1)
+        seed = kwargs.get("seed")
+        top_p = kwargs.get("top_p")
+
+        call_kwargs = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if seed is not None:
+            call_kwargs["seed"] = seed
+        if top_p is not None:
+            call_kwargs["top_p"] = top_p
 
         start = time.perf_counter()
-        response = await client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-        )
+        response = await client.chat.completions.create(**call_kwargs)
         elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
 
         content = response.choices[0].message.content
@@ -307,14 +345,22 @@ class GroqProvider(BaseLLMProvider):
         model = kwargs.pop("model_override", self.model)
         max_tokens = kwargs.get("max_tokens", 1024)
         temperature = kwargs.get("temperature", 0.1)
+        seed = kwargs.get("seed")
+        top_p = kwargs.get("top_p")
 
-        stream = await client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            stream=True,
-        )
+        call_kwargs = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "stream": True,
+        }
+        if seed is not None:
+            call_kwargs["seed"] = seed
+        if top_p is not None:
+            call_kwargs["top_p"] = top_p
+
+        stream = await client.chat.completions.create(**call_kwargs)
 
         async for chunk in stream:
             if chunk.choices and chunk.choices[0].delta.content:

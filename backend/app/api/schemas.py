@@ -13,6 +13,8 @@ class GenerateSQLRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000, description="Natural language question")
     history: list[dict] = Field(default=[], description="Conversation history")
     execute: bool = Field(default=True, description="Execute the generated SQL immediately")
+    clarification_response: Optional[str] = Field(default=None, description="User response to a clarification prompt")
+    active_clarification: Optional[dict] = Field(default=None, description="Pending clarification state")
 
 
 class QueryResult(BaseModel):
@@ -32,6 +34,10 @@ class QueryResult(BaseModel):
     insights: list[str] = []
     follow_ups: list[str] = []
     error: Optional[str] = None
+    requires_clarification: bool = False
+    clarification: Optional[dict] = None
+    semantic_assumptions: list[dict] = []
+
 
 
 class ExecuteQueryRequest(BaseModel):

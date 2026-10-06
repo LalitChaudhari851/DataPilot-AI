@@ -20,6 +20,7 @@ from app.agents.execution import execution_node
 from app.agents.visualization import visualization_node
 from app.agents.result_summary import result_summary_node
 from app.agents.guardrails import OutputGuardrail
+from app.db.registry import DatabaseRegistry, get_database_registry, resolve_database
 
 logger = structlog.get_logger()
 
@@ -39,18 +40,41 @@ class AgentOrchestrator:
                          → [blocked? → END with error]
     """
 
-    def __init__(self, llm_router, rag_retriever, db_pool):
+    def __init__(self, llm_router, rag_retriever, db_pool, registry: DatabaseRegistry | None = None):
         self.llm_router = llm_router
         self.rag_retriever = rag_retriever
         self.db_pool = db_pool
+        self.registry = registry or get_database_registry()
+        if self.db_pool is not None and not self.registry.has_database("default"):
+            self.registry.register("default", self.db_pool, dialect="mysql")
 
-        # ── Initialize Output Guardrail with live schema ──
-        self.guardrail = self._init_guardrail(db_pool)
+        # ── Cache OutputGuardrail per database pool instance ──
+        self._guardrails: dict[int, OutputGuardrail] = {}
+        self.guardrail = self._get_guardrail(db_pool)
 
         # ── Initialize Semantic Cache ──
         self.semantic_cache = self._init_semantic_cache()
 
         self.graph = self._build_graph()
+
+    def _get_guardrail(self, pool) -> OutputGuardrail:
+        """Get or lazily initialize OutputGuardrail for a given pool."""
+        if pool is None:
+            return OutputGuardrail()
+        pool_key = id(pool)
+        if pool_key not in self._guardrails:
+            self._guardrails[pool_key] = self._init_guardrail(pool)
+        return self._guardrails[pool_key]
+
+    def _resolve_pool_and_dialect(self, state: AgentState):
+        """
+        Resolve (db_id, sql_dialect, pool) from state using DatabaseRegistry as source of truth.
+        """
+        db_id = state.get("db_id")
+        resolved_id, dialect, pool = resolve_database(db_id, default_pool=self.db_pool, registry=self.registry)
+        state["db_id"] = resolved_id
+        state["sql_dialect"] = dialect
+        return resolved_id, dialect, pool
 
     @staticmethod
     def _init_semantic_cache():
@@ -101,6 +125,7 @@ class AgentOrchestrator:
         graph.add_node("ground_summary", self._ground_summary)
         graph.add_node("visualize", self._visualize)
         graph.add_node("handle_blocked", self._handle_blocked)
+        graph.add_node("handle_clarification", self._handle_clarification)
 
         # ── Entry point ──────────────────────────────────
         graph.set_entry_point("understand_query")
@@ -126,6 +151,7 @@ class AgentOrchestrator:
             self._route_after_schema,
             {
                 "meta_query": "handle_meta",
+                "clarification": "handle_clarification",
                 "sql": "generate_sql",
             },
         )
@@ -143,7 +169,16 @@ class AgentOrchestrator:
             },
         )
 
-        graph.add_edge("execute_query", "ground_summary")
+        # ── Conditional routing after execution (self-repair) ───
+        graph.add_conditional_edges(
+            "execute_query",
+            self._route_after_execution,
+            {
+                "continue": "ground_summary",
+                "retry": "generate_sql",
+            },
+        )
+
         graph.add_edge("ground_summary", "visualize")
 
         # ── Terminal nodes ───────────────────────────────
@@ -151,8 +186,23 @@ class AgentOrchestrator:
         graph.add_edge("handle_chat", END)
         graph.add_edge("handle_meta", END)
         graph.add_edge("handle_blocked", END)
+        graph.add_edge("handle_clarification", END)
 
         return graph.compile()
+
+    @staticmethod
+    def _route_after_execution(state: AgentState) -> str:
+        """
+        Self-repair router after execution.
+        If execution failed with a database error and retry_count < 3,
+        routes back to generate_sql for LLM correction.
+        """
+        has_error = bool(state.get("error")) and state.get("error_agent") == "execution"
+        retry_count = state.get("retry_count", 0)
+        if has_error and retry_count < 3:
+            logger.info("execution_failure_triggers_retry", retry_count=retry_count, error=state.get("error"))
+            return "retry"
+        return "continue"
 
     # ── Node Wrappers (inject dependencies + error isolation) ──
 
@@ -160,9 +210,11 @@ class AgentOrchestrator:
         return self._safe_execute("query_understanding", query_understanding_node, state, self.llm_router)
 
     def _retrieve_schema(self, state: AgentState) -> dict:
-        return self._safe_execute("schema_retrieval", schema_retrieval_node, state, self.rag_retriever, self.db_pool)
+        _, _, pool = self._resolve_pool_and_dialect(state)
+        return self._safe_execute("schema_retrieval", schema_retrieval_node, state, self.rag_retriever, pool)
 
     def _generate_sql(self, state: AgentState) -> dict:
+        self._resolve_pool_and_dialect(state)
         return self._safe_execute("sql_generation", sql_generation_node, state, self.llm_router)
 
     def _guardrail_check(self, state: AgentState) -> dict:
@@ -175,8 +227,11 @@ class AgentOrchestrator:
         if not sql:
             return {}
 
-        warnings = self.guardrail.validate_sql_references(sql)
-        confidence = self.guardrail.score_confidence(sql)
+        _, _, pool = self._resolve_pool_and_dialect(state)
+        guardrail = self._get_guardrail(pool)
+
+        warnings = guardrail.validate_sql_references(sql)
+        confidence = guardrail.score_confidence(sql)
 
         if warnings:
             logger.warning(
@@ -204,7 +259,8 @@ class AgentOrchestrator:
         return self._safe_execute("sql_validation", sql_validation_node, state)
 
     def _execute_query(self, state: AgentState) -> dict:
-        return self._safe_execute("execution", execution_node, state, self.db_pool)
+        _, _, pool = self._resolve_pool_and_dialect(state)
+        return self._safe_execute("execution", execution_node, state, pool)
 
     def _visualize(self, state: AgentState) -> dict:
         return self._safe_execute("visualization", visualization_node, state)
@@ -304,7 +360,25 @@ class AgentOrchestrator:
                 "I can only perform safe, read-only (SELECT) operations."
             ),
             "query_results": [],
+            "query_results": [],
             "row_count": 0,
+        }
+
+    def _handle_clarification(self, state: AgentState) -> dict:
+        """Terminal node when clarification is required before SQL generation."""
+        active = state.get("active_clarification") or {}
+        candidates = active.get("candidates", [])
+        follow_ups = [c.get("label", "") for c in candidates]
+        return {
+            "friendly_message": state.get(
+                "friendly_message",
+                "Could you clarify your request?",
+            ),
+            "query_results": [],
+            "row_count": 0,
+            "requires_clarification": True,
+            "active_clarification": active,
+            "follow_up_questions": follow_ups,
         }
 
     # ── Routing Functions ────────────────────────────────
@@ -318,7 +392,9 @@ class AgentOrchestrator:
 
     @staticmethod
     def _route_after_schema(state: AgentState) -> str:
-        """Send schema/meta requests to the meta handler; SQL requests continue."""
+        """Route after schema retrieval: clarification, meta query, or SQL generation."""
+        if state.get("requires_clarification"):
+            return "clarification"
         if state.get("route_intent") == "meta_query":
             return "meta_query"
         return "sql"
@@ -331,6 +407,10 @@ class AgentOrchestrator:
         conversation_history: list[dict] = None,
         tenant_id: str = "default",
         user_role: str = "analyst",
+        db_id: str | None = None,
+        sql_dialect: str | None = None,
+        clarification_response: str | None = None,
+        active_clarification: dict | None = None,
     ) -> AgentState:
         """
         Process a natural language query through the full agent pipeline (sync).
@@ -338,6 +418,11 @@ class AgentOrchestrator:
         Enforces a pipeline-level timeout to prevent runaway processing.
         """
         trace_id = str(uuid.uuid4())[:8]
+
+        # Resolve database and dialect
+        resolved_db_id, resolved_dialect, _ = resolve_database(
+            db_id, default_pool=self.db_pool, registry=self.registry
+        )
 
         initial_state: AgentState = {
             "user_query": user_query,
@@ -347,7 +432,13 @@ class AgentOrchestrator:
             "trace_id": trace_id,
             "retry_count": 0,
             "validation_errors": [],
+            "db_id": resolved_db_id,
+            "sql_dialect": resolved_dialect,
         }
+        if clarification_response:
+            initial_state["clarification_response"] = clarification_response
+        if active_clarification:
+            initial_state["active_clarification"] = active_clarification
 
         logger.info(
             "pipeline_started",
@@ -452,6 +543,8 @@ class AgentOrchestrator:
         conversation_history: list[dict] = None,
         tenant_id: str = "default",
         user_role: str = "analyst",
+        db_id: str | None = None,
+        sql_dialect: str | None = None,
     ) -> AgentState:
         """
         Async version of process_query.
@@ -469,6 +562,8 @@ class AgentOrchestrator:
                     conversation_history=conversation_history,
                     tenant_id=tenant_id,
                     user_role=user_role,
+                    db_id=db_id,
+                    sql_dialect=sql_dialect,
                 ),
                 timeout=PIPELINE_TIMEOUT_SECONDS,
             )
@@ -494,6 +589,8 @@ class AgentOrchestrator:
         conversation_history: list[dict] = None,
         tenant_id: str = "default",
         user_role: str = "analyst",
+        db_id: str | None = None,
+        sql_dialect: str | None = None,
     ) -> AgentState:
         """
         Optimized async pipeline that runs independent stages concurrently.
@@ -523,6 +620,10 @@ class AgentOrchestrator:
                     logger.info("parallel_cache_hit", trace_id=trace_id)
                     return cached
 
+            resolved_db_id, resolved_dialect, resolved_pool = resolve_database(
+                db_id, default_pool=self.db_pool, registry=self.registry
+            )
+
             initial_state: AgentState = {
                 "user_query": user_query,
                 "conversation_history": conversation_history or [],
@@ -531,6 +632,8 @@ class AgentOrchestrator:
                 "trace_id": trace_id,
                 "retry_count": 0,
                 "validation_errors": [],
+                "db_id": resolved_db_id,
+                "sql_dialect": resolved_dialect,
             }
 
             # ── Run intent + schema retrieval in parallel ──
@@ -538,7 +641,7 @@ class AgentOrchestrator:
                 query_understanding_node, initial_state, self.llm_router
             )
             schema_task = asyncio.to_thread(
-                schema_retrieval_node, initial_state, self.rag_retriever, self.db_pool
+                schema_retrieval_node, initial_state, self.rag_retriever, resolved_pool
             )
 
             # Both start immediately; gather waits for both
@@ -594,6 +697,8 @@ class AgentOrchestrator:
                 conversation_history=conversation_history,
                 tenant_id=tenant_id,
                 user_role=user_role,
+                db_id=db_id,
+                sql_dialect=sql_dialect,
             )
 
     # ── Progressive Streaming Pipeline ───────────────────────
@@ -604,6 +709,10 @@ class AgentOrchestrator:
         conversation_history: list[dict] = None,
         tenant_id: str = "default",
         user_role: str = "analyst",
+        db_id: str | None = None,
+        sql_dialect: str | None = None,
+        clarification_response: str | None = None,
+        active_clarification: dict | None = None,
     ):
         """
         Async generator that yields SSE-ready event dicts after each pipeline stage.
@@ -620,6 +729,7 @@ class AgentOrchestrator:
         Yields dicts with a 'type' key:
             - {'type': 'intent', 'intent': ..., 'complexity': ...}
             - {'type': 'stage', 'stage': 'retrieval', 'message': ...}
+            - {'type': 'clarification_required', 'clarification': ..., 'message': ...}
             - {'type': 'sql', 'sql': ..., 'explanation': ...}
             - {'type': 'results', 'data': [...], 'row_count': ..., ...}
             - {'type': 'summary_token', 'token': ...}
@@ -636,6 +746,10 @@ class AgentOrchestrator:
         trace_id = str(uuid.uuid4())[:8]
         start_time = time.perf_counter()
 
+        resolved_db_id, resolved_dialect, resolved_pool = resolve_database(
+            db_id, default_pool=self.db_pool, registry=self.registry
+        )
+
         state: AgentState = {
             "user_query": user_query,
             "conversation_history": conversation_history or [],
@@ -644,7 +758,13 @@ class AgentOrchestrator:
             "trace_id": trace_id,
             "retry_count": 0,
             "validation_errors": [],
+            "db_id": resolved_db_id,
+            "sql_dialect": resolved_dialect,
         }
+        if clarification_response:
+            state["clarification_response"] = clarification_response
+        if active_clarification:
+            state["active_clarification"] = active_clarification
 
         logger.info("streaming_pipeline_started", trace_id=trace_id, query=user_query[:80])
 
@@ -711,9 +831,34 @@ class AgentOrchestrator:
             # ── Stage 2: Schema Retrieval (~100ms) ───────────
             yield {"type": "stage", "stage": "retrieving", "message": "Retrieving schema context..."}
             schema_result = await asyncio.to_thread(
-                schema_retrieval_node, state, self.rag_retriever, self.db_pool
+                schema_retrieval_node, state, self.rag_retriever, resolved_pool
             )
             state.update(schema_result)
+
+            # Phase 10: Check if clarification is required before proceeding to SQL generation
+            if state.get("requires_clarification"):
+                active_clarif = state.get("active_clarification") or {}
+                yield {
+                    "type": "clarification_required",
+                    "clarification": active_clarif,
+                    "message": state.get("friendly_message", ""),
+                }
+                yield {
+                    "type": "message",
+                    "message": state.get("friendly_message", ""),
+                    "insights": [],
+                    "follow_ups": [c.get("label", "") for c in active_clarif.get("candidates", [])],
+                }
+                elapsed = round((time.perf_counter() - start_time) * 1000, 2)
+                yield {"type": "done", "total_time_ms": elapsed, "clarification_needed": True}
+                return
+
+            if state.get("clarification_resolved") and state.get("selected_candidate"):
+                yield {
+                    "type": "stage",
+                    "stage": "clarification_resolved",
+                    "message": f"Resolved: Using {state['selected_candidate'].get('label', '')}",
+                }
 
             # Handle meta_query
             if route_intent == "meta_query":
@@ -783,7 +928,7 @@ class AgentOrchestrator:
             # ── Stage 4: Database Execution (~100ms) ─────────
             yield {"type": "stage", "stage": "Executing", "message": "Executing query..."}
             exec_result = await asyncio.to_thread(
-                execution_node, state, self.db_pool
+                execution_node, state, resolved_pool
             )
             state.update(exec_result)
 

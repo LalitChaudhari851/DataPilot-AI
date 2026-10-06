@@ -18,7 +18,7 @@ BLOCKED_KEYWORDS = {
     "GRANT", "REVOKE", "CREATE", "EXEC", "EXECUTE", "CALL",
     "MERGE", "REPLACE", "RENAME", "LOAD", "INTO OUTFILE",
     "INTO DUMPFILE", "LOCK", "UNLOCK", "FLUSH", "RESET",
-    "PURGE", "HANDLER", "DO", "SET",
+    "PURGE", "HANDLER", "DO", "SET", "ATTACH", "DETACH",
 }
 
 # ── Allowed statement types ──────────────────────────────
@@ -52,7 +52,7 @@ def sql_validation_node(state: AgentState) -> dict:
             "is_valid": False,
             "validation_errors": ["Empty SQL query"],
             "sanitized_sql": "",
-            "retry_count": retry_count,
+            "retry_count": retry_count + 1,
         }
 
     errors = []
@@ -65,7 +65,7 @@ def sql_validation_node(state: AgentState) -> dict:
             "is_valid": False,
             "validation_errors": [f"SQL parse error: {str(e)}"],
             "sanitized_sql": "",
-            "retry_count": retry_count,
+            "retry_count": retry_count + 1,
         }
 
     if not parsed_statements:
@@ -73,7 +73,7 @@ def sql_validation_node(state: AgentState) -> dict:
             "is_valid": False,
             "validation_errors": ["No valid SQL statements found"],
             "sanitized_sql": "",
-            "retry_count": retry_count,
+            "retry_count": retry_count + 1,
         }
 
     # ── 2. Block multiple statements (injection defense) ─

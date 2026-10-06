@@ -76,6 +76,7 @@ class OutputGuardrail:
                 "nth_value", "percent_rank", "cume_dist", "quarter",
                 "week", "dayofweek", "dayofyear", "monthname", "dayname",
                 "time", "timestamp", "str_to_date", "date",
+                "strftime", "julianday", "total", "iif", "datetime", "unixepoch",
             }
 
             # SQL keywords that appear as Name tokens

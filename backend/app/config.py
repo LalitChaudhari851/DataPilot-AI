@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
-    GROQ_MODEL_PRIMARY: str = "groq/compound-mini"
-    GROQ_MODEL_FAST: str = "groq/compound-mini"
+    GROQ_MODEL_PRIMARY: str = "qwen/qwen3.8-27b"
+    GROQ_MODEL_FAST: str = "qwen/qwen3.8-27b"
     GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     DEFAULT_LLM_PROVIDER: str = Field(default="groq", description="groq | huggingface | openai | anthropic | ollama")
@@ -52,6 +52,67 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIR: str = "./chroma_db"
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     RAG_TOP_K: int = 5
+
+    # ── Spider / SQLite Databases ────────────────────────
+    SPIDER_DB_DIR: Optional[str] = Field(
+        default=None,
+        description="Directory containing Spider 2.0-Lite .sqlite database files",
+    )
+    SPIDER_EVAL_DIR: Optional[str] = Field(
+        default=None,
+        description="Directory or file path containing Spider 2.0-Lite evaluation metadata/dataset",
+    )
+
+    # ── Deterministic Evaluation (Phase 8) ───────────────
+    PLAINSQL_EVAL_MODE: bool = Field(
+        default=False,
+        description="When True, enforces pinned provider, temperature=0.0, seed, and explicit error recording without fallback",
+    )
+    PLAINSQL_EVAL_PROVIDER: Optional[str] = Field(
+        default="groq",
+        description="Pinned provider to use in strict evaluation mode (e.g. 'groq')",
+    )
+    PLAINSQL_EVAL_TEMPERATURE: float = Field(
+        default=0.0,
+        description="Deterministic temperature for evaluation",
+    )
+    PLAINSQL_EVAL_SEED: Optional[int] = Field(
+        default=42,
+        description="Deterministic seed for providers that support it (e.g. Groq/OpenAI)",
+    )
+    PLAINSQL_EVAL_DELAY_MS: int = Field(
+        default=500,
+        description="Pacing delay in milliseconds between evaluation requests to avoid rate limits",
+    )
+
+    # ── Semantic Ambiguity & Clarification (Phase 10) ────
+    PLAINSQL_SEMANTIC_AUTO_EXECUTE_THRESHOLD: float = Field(
+        default=0.85,
+        description="Confidence threshold at or above which semantic choices auto-execute without clarification",
+    )
+    PLAINSQL_SEMANTIC_CLARIFICATION_THRESHOLD: float = Field(
+        default=0.65,
+        description="Confidence threshold below which clarification is requested if multiple plausible candidates exist",
+    )
+
+    # ── Business Knowledge RAG & Semantic Learning (Phase 11) ──
+    PLAINSQL_BUSINESS_GLOSSARY_PATH: Optional[str] = Field(
+        default="app/semantics/business_glossary.yaml",
+        description="Path to external enterprise business glossary YAML or JSON file",
+    )
+    PLAINSQL_LEARNING_PROMOTION_COUNT: int = Field(
+        default=3,
+        description="Minimum confirmation count before a candidate definition is eligible for promotion",
+    )
+    PLAINSQL_LEARNING_MIN_CONFIDENCE: float = Field(
+        default=0.8,
+        description="Minimum average confidence required for definition promotion",
+    )
+    PLAINSQL_ENABLE_BUSINESS_KNOWLEDGE_RAG: bool = Field(
+        default=True,
+        description="Enable Business Knowledge hybrid retrieval alongside schema retrieval",
+    )
+
 
     # ── Safety ───────────────────────────────────────────
     MAX_QUERY_ROWS: int = 1000

@@ -1,0 +1,39 @@
+{
+  "run_id": "eval_20261003_195731",
+  "timestamp": "2026-10-03 20:04:01",
+  "eval_mode": true,
+  "pinned_provider": "groq",
+  "provider": "groq",
+  "model": "qwen/qwen3.8-27b",
+  "temperature": 0.0,
+  "seed": 42,
+  "pacing_delay_ms": 500,
+  "dataset_filter": {
+    "db_id": null,
+    "limit": 20,
+    "mode": "plainsql"
+  },
+  "total_examples": 20,
+  "plainsql": {
+    "total_examples": 20,
+    "evaluated_examples": 20,
+    "skipped_examples": 0,
+    "sql_validity_rate": 1.0,
+    "initial_execution_success_rate": 1.0,
+    "repair_attempt_rate": 0.0,
+    "repair_success_rate": 0.0,
+    "final_execution_success_rate": 1.0,
+    "examples_with_gold_sql": 20,
+    "execution_accuracy": 0.85,
+    "schema_table_recall": 1.0,
+    "schema_table_precision": 0.3633,
+    "latency_ms": {
+      "average": 16117.28,
+      "median": 17854.17,
+      "p95": 20350.3
+    },
+    "failure_categories": {
+      "semantic_mismatch": 3
+    }
+  }
+}

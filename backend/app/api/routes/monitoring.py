@@ -50,6 +50,8 @@ def get_metrics_collector() -> QueryMetricsRecorder:
 def create_monitoring_router() -> APIRouter:
     """Factory to create monitoring router."""
 
+    @router.get("")
+    @router.get("/")
     @router.get("/prometheus")
     def prometheus_metrics_endpoint():
         """

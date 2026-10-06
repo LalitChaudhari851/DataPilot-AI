@@ -54,3 +54,9 @@ backend/api_query_script.py
 backend/debug_output.json
 db_test_nrr_relative.py
 scratch/
+
+# ── Temporary Prompt Drafts & Caches ─────────────────────
+*.npy
+phase10_prompt*.txt
+backend/phase6_eval_output.json
+

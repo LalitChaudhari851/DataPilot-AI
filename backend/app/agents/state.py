@@ -18,6 +18,8 @@ class AgentState(TypedDict, total=False):
     tenant_id: str
     user_role: str
     trace_id: str
+    db_id: Optional[str]                   # Database identifier (e.g., "default", "E_commerce")
+    sql_dialect: Optional[Literal["mysql", "sqlite"]]  # SQL dialect for generation/execution
 
     # ── Query Understanding Agent Output ─────────────────
     intent: Literal[
@@ -71,3 +73,25 @@ class AgentState(TypedDict, total=False):
     # ── Error Handling ───────────────────────────────────
     error: Optional[str]               # Error message if any step failed
     error_agent: Optional[str]         # Which agent produced the error
+
+    # ── Deterministic Evaluation (Phase 8) ───────────────
+    eval_mode: bool                    # When True, enforces deterministic temperature & seed
+    eval_temperature: float            # Deterministic temperature (e.g. 0.0)
+    eval_seed: Optional[int]           # Seed for reproducible generation (e.g. 42)
+    pinned_provider: Optional[str]     # Pin LLM provider (e.g. "groq") without fallback
+    selected_few_shots: list[str]      # Selected few-shot example IDs/questions used
+
+    # ── Business Semantic Layer (Phase 9) ────────────────
+    semantic_context: Optional[str]        # Contextual semantic disambiguation guidance for SQL generation
+    semantic_annotations: Optional[dict]   # Structured semantic mapping metadata
+
+    # ── Interactive Query Disambiguation (Phase 10) ─────
+    ambiguities: Optional[list[dict]]          # Detected semantic ambiguities
+    active_clarification: Optional[dict]       # Pending clarification object when required
+    clarification_resolved: Optional[bool]     # True if ambiguity was answered by user
+    clarification_response: Optional[str]      # User's raw answer to clarification prompt
+    selected_candidate: Optional[dict]         # Resolved candidate chosen by user or system
+    semantic_assumptions: Optional[list[dict]] # Tracked assumptions when auto-executing
+    requires_clarification: bool               # True if execution is paused pending user input
+
+
