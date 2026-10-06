@@ -42,16 +42,16 @@ class RedisCache:
         return self._client is not None
 
     @staticmethod
-    def _make_key(query: str, tenant_id: str = "default") -> str:
-        raw = f"{tenant_id}:{query.strip().lower()}"
+    def _make_key(query: str, tenant_id: str = "default", db_id: str = "default") -> str:
+        raw = f"{tenant_id}:{db_id}:{query.strip().lower()}"
         return f"plainsql:cache:{hashlib.sha256(raw.encode()).hexdigest()[:16]}"
 
-    def get(self, query: str, tenant_id: str = "default") -> Optional[dict]:
+    def get(self, query: str, tenant_id: str = "default", db_id: str = "default") -> Optional[dict]:
         """Retrieve cached query result."""
         if not self._client:
             return None
         try:
-            key = self._make_key(query, tenant_id)
+            key = self._make_key(query, tenant_id, db_id)
             data = self._client.get(key)
             if data:
                 logger.debug("cache_hit", key=key[:20])
@@ -60,12 +60,12 @@ class RedisCache:
             logger.warning("redis_get_failed", error=str(e))
         return None
 
-    def set(self, query: str, data: dict, tenant_id: str = "default"):
+    def set(self, query: str, data: dict, tenant_id: str = "default", db_id: str = "default"):
         """Cache a query result with TTL."""
         if not self._client:
             return
         try:
-            key = self._make_key(query, tenant_id)
+            key = self._make_key(query, tenant_id, db_id)
             self._client.setex(key, self.ttl, json.dumps(data, default=str))
         except Exception as e:
             logger.warning("redis_set_failed", error=str(e))

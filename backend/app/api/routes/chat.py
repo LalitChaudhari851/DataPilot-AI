@@ -30,8 +30,10 @@ def create_chat_router(orchestrator, auth_dep, cache, rate_limiter, tracer, expl
         if not rate_limiter.check(user_key):
             raise HTTPException(429, "Rate limit exceeded. Please wait a moment.")
 
+        target_db_id = getattr(request, "db_id", None) or "default"
+
         # Check cache
-        cached = cache.get(request.question, current_user.get("tenant_id", "default"))
+        cached = cache.get(request.question, current_user.get("tenant_id", "default"), db_id=target_db_id)
         if cached:
             cached["trace_id"] = "cached"
             return QueryResult(**cached)
@@ -42,6 +44,7 @@ def create_chat_router(orchestrator, auth_dep, cache, rate_limiter, tracer, expl
             conversation_history=request.history,
             tenant_id=current_user.get("tenant_id", "default"),
             user_role=current_user.get("role", "viewer"),
+            db_id=target_db_id,
             clarification_response=request.clarification_response,
             active_clarification=request.active_clarification,
         )
@@ -73,7 +76,7 @@ def create_chat_router(orchestrator, auth_dep, cache, rate_limiter, tracer, expl
 
         # Cache successful results
         if not result.get("error") and result.get("query_results") and not result.get("requires_clarification"):
-            cache.set(request.question, response_data, current_user.get("tenant_id", "default"))
+            cache.set(request.question, response_data, current_user.get("tenant_id", "default"), db_id=target_db_id)
 
         return QueryResult(**response_data)
 
@@ -87,12 +90,15 @@ def create_chat_router(orchestrator, auth_dep, cache, rate_limiter, tracer, expl
         if not rate_limiter.check(user_key):
             raise HTTPException(429, "Rate limit exceeded.")
 
+        target_db_id = getattr(request, "db_id", None) or "default"
+
         async def event_generator():
             async for event in orchestrator.aprocess_query_streaming(
                 user_query=request.question,
                 conversation_history=request.history,
                 tenant_id=current_user.get("tenant_id", "default"),
                 user_role=current_user.get("role", "viewer"),
+                db_id=target_db_id,
                 clarification_response=request.clarification_response,
                 active_clarification=request.active_clarification,
             ):

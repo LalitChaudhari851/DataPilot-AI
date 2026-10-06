@@ -210,3 +210,89 @@ databases:
           - "How many total players are listed in the player table?"
         priority: 100
         confidence: 1.0
+
+  default:
+    definitions:
+      - term: revenue
+        meaning: "Total net monetary collections from successful customer payments"
+        preferred_columns:
+          - payments.amount
+          - payments.payment_status
+        formula_or_hint: "SUM(payments.amount)"
+        synonyms:
+          - total revenue
+          - net revenue
+          - collected revenue
+          - payments revenue
+        examples:
+          - "What is our total revenue?"
+          - "Show monthly revenue from payments"
+        priority: 100
+        confidence: 1.0
+
+      - term: arr
+        meaning: "Total contracted Annual Recurring Revenue for active customer subscriptions"
+        preferred_columns:
+          - subscriptions.contracted_arr
+          - subscriptions.status
+        formula_or_hint: "SUM(subscriptions.contracted_arr)"
+        synonyms:
+          - annual recurring revenue
+          - total arr
+          - contracted arr
+          - active arr
+        examples:
+          - "What is our total ARR?"
+          - "Show active ARR by account segment"
+        priority: 100
+        confidence: 1.0
+
+      - term: nrr
+        meaning: "Net Revenue Retention percentage comparing active contracted ARR against total contracted ARR"
+        preferred_columns:
+          - subscriptions.contracted_arr
+          - subscriptions.status
+          - subscriptions.account_id
+        formula_or_hint: "ROUND(SUM(CASE WHEN s.status = 'active' THEN s.contracted_arr ELSE 0 END) * 100.0 / SUM(s.contracted_arr), 2)"
+        synonyms:
+          - net revenue retention
+          - nrr percentage
+          - retention rate
+        examples:
+          - "Calculate NRR by customer segment"
+          - "Show quarterly net revenue retention"
+        priority: 100
+        confidence: 1.0
+
+      - term: churn
+        meaning: "Cancelled customer subscriptions or customer accounts identified as high churn risk"
+        preferred_columns:
+          - subscriptions.status
+          - accounts.churn_risk
+        formula_or_hint: "subscriptions.status = 'cancelled'"
+        synonyms:
+          - churned subscriptions
+          - churn risk
+          - cancellations
+        examples:
+          - "How many subscriptions churned?"
+          - "List accounts with high churn risk"
+        priority: 95
+        confidence: 0.95
+
+      - term: active_customers
+        meaning: "Total unique customer accounts with active subscription status"
+        preferred_columns:
+          - subscriptions.account_id
+          - subscriptions.status
+        formula_or_hint: "COUNT(DISTINCT subscriptions.account_id)"
+        synonyms:
+          - active accounts
+          - paying customers
+          - subscriber count
+        examples:
+          - "How many active customers do we have?"
+          - "Count paying accounts by region"
+        priority: 95
+        confidence: 0.95
+

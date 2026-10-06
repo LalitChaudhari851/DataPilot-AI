@@ -65,12 +65,12 @@ class QueryCache:
         self.max_entries = max_entries
         self._cache: dict[str, dict] = {}
 
-    def _make_key(self, query: str, tenant_id: str = "default") -> str:
-        raw = f"{tenant_id}:{query.strip().lower()}"
+    def _make_key(self, query: str, tenant_id: str = "default", db_id: str = "default") -> str:
+        raw = f"{tenant_id}:{db_id}:{query.strip().lower()}"
         return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
-    def get(self, query: str, tenant_id: str = "default") -> Optional[dict]:
-        key = self._make_key(query, tenant_id)
+    def get(self, query: str, tenant_id: str = "default", db_id: str = "default") -> Optional[dict]:
+        key = self._make_key(query, tenant_id, db_id)
         entry = self._cache.get(key)
         if entry and time.time() - entry["timestamp"] < self.ttl:
             return entry["data"]
@@ -78,13 +78,13 @@ class QueryCache:
             del self._cache[key]
         return None
 
-    def set(self, query: str, data: dict, tenant_id: str = "default"):
-        key = self._make_key(query, tenant_id)
+    def set(self, query: str, data: dict, tenant_id: str = "default", db_id: str = "default"):
+        key = self._make_key(query, tenant_id, db_id)
         # Evict oldest if at capacity
         if len(self._cache) >= self.max_entries:
             oldest_key = min(self._cache, key=lambda k: self._cache[k]["timestamp"])
             del self._cache[oldest_key]
-        self._cache[key] = {"data": data, "timestamp": time.time(), "tenant_id": tenant_id}
+        self._cache[key] = {"data": data, "timestamp": time.time(), "tenant_id": tenant_id, "db_id": db_id}
 
     def invalidate(self, tenant_id: str = "default"):
         """Clear all cache entries for a specific tenant.

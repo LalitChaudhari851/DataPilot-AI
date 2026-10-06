@@ -1,0 +1,1588 @@
+{
+  "database": "chatbot",
+  "host": "gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com",
+  "exported_at": "2026-10-06T07:21:06.729426Z",
+  "total_tables": 22,
+  "tables": {
+    "accounts": {
+      "row_count": 120,
+      "columns": [
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "account_name",
+          "type": "varchar(160)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "industry",
+          "type": "varchar(80)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "segment",
+          "type": "enum('startup','mid_market','enterprise','strategic')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "region",
+          "type": "varchar(60)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "country",
+          "type": "varchar(60)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "employee_count",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "arr_band",
+          "type": "enum('under_25k','25k_100k','100k_500k','500k_plus')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "health_score",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "churn_risk",
+          "type": "enum('low','medium','high')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "date",
+          "null": "NO",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": []
+    },
+    "contacts": {
+      "row_count": 360,
+      "columns": [
+        {
+          "name": "contact_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "full_name",
+          "type": "varchar(140)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "varchar(120)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "department",
+          "type": "varchar(80)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "varchar(180)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "is_executive_sponsor",
+          "type": "tinyint(1)",
+          "null": "YES",
+          "key": "",
+          "default": "0"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "account_id",
+          "REFERENCED_TABLE_NAME": "accounts",
+          "REFERENCED_COLUMN_NAME": "account_id"
+        }
+      ]
+    },
+    "conversations": {
+      "row_count": 69,
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar(36)",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "varchar(64)",
+          "null": "NO",
+          "key": "MUL",
+          "default": "anonymous"
+        },
+        {
+          "name": "title",
+          "type": "varchar(255)",
+          "null": "NO",
+          "key": "",
+          "default": "New analysis"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "null": "YES",
+          "key": "",
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "null": "YES",
+          "key": "MUL",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "foreign_keys": []
+    },
+    "departments": {
+      "row_count": 10,
+      "columns": [
+        {
+          "name": "department_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(100)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "cost_center",
+          "type": "varchar(20)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "region",
+          "type": "varchar(40)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "annual_budget",
+          "type": "decimal(14,2)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": []
+    },
+    "employees": {
+      "row_count": 80,
+      "columns": [
+        {
+          "name": "employee_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "department_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "manager_id",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "full_name",
+          "type": "varchar(120)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "varchar(80)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "location",
+          "type": "varchar(80)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "hire_date",
+          "type": "date",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "base_salary",
+          "type": "decimal(12,2)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "quota_arr",
+          "type": "decimal(14,2)",
+          "null": "YES",
+          "key": "",
+          "default": "0"
+        },
+        {
+          "name": "active",
+          "type": "tinyint(1)",
+          "null": "YES",
+          "key": "",
+          "default": "1"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "department_id",
+          "REFERENCED_TABLE_NAME": "departments",
+          "REFERENCED_COLUMN_NAME": "department_id"
+        }
+      ]
+    },
+    "feature_catalog": {
+      "row_count": 10,
+      "columns": [
+        {
+          "name": "feature_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "product_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "feature_name",
+          "type": "varchar(120)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "feature_category",
+          "type": "varchar(80)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "risk_level",
+          "type": "enum('low','medium','high')",
+          "null": "YES",
+          "key": "",
+          "default": "low"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "product_id",
+          "REFERENCED_TABLE_NAME": "products",
+          "REFERENCED_COLUMN_NAME": "product_id"
+        }
+      ]
+    },
+    "incidents": {
+      "row_count": 90,
+      "columns": [
+        {
+          "name": "incident_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "type": "datetime",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "ended_at",
+          "type": "datetime",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "severity",
+          "type": "enum('sev1','sev2','sev3')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "affected_product",
+          "type": "varchar(120)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "customer_impact",
+          "type": "varchar(260)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "root_cause",
+          "type": "varchar(180)",
+          "null": "YES",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": []
+    },
+    "invoices": {
+      "row_count": 4320,
+      "columns": [
+        {
+          "name": "invoice_id",
+          "type": "bigint",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "subscription_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "invoice_date",
+          "type": "date",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "enum('paid','open','void','uncollectible')",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal(14,2)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "tax",
+          "type": "decimal(14,2)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "total",
+          "type": "decimal(14,2)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "subscription_id",
+          "REFERENCED_TABLE_NAME": "subscriptions",
+          "REFERENCED_COLUMN_NAME": "subscription_id"
+        },
+        {
+          "COLUMN_NAME": "account_id",
+          "REFERENCED_TABLE_NAME": "accounts",
+          "REFERENCED_COLUMN_NAME": "account_id"
+        }
+      ]
+    },
+    "messages": {
+      "row_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar(36)",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "conversation_id",
+          "type": "varchar(36)",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "enum('user','assistant')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "generated_sql",
+          "type": "text",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "explanation",
+          "type": "text",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "friendly_message",
+          "type": "text",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "intent",
+          "type": "varchar(32)",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "execution_time_ms",
+          "type": "float",
+          "null": "YES",
+          "key": "",
+          "default": "0"
+        },
+        {
+          "name": "row_count",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": "0"
+        },
+        {
+          "name": "result_data",
+          "type": "json",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "feedback",
+          "type": "enum('up','down')",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "null": "YES",
+          "key": "MUL",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "conversation_id",
+          "REFERENCED_TABLE_NAME": "conversations",
+          "REFERENCED_COLUMN_NAME": "id"
+        }
+      ]
+    },
+    "opportunities": {
+      "row_count": 850,
+      "columns": [
+        {
+          "name": "opportunity_id",
+          "type": "bigint",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "owner_employee_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "opportunity_name",
+          "type": "varchar(180)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "stage",
+          "type": "enum('prospecting','qualification','technical_validation','proposal','negotiation','closed_won','closed_lost')",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "source",
+          "type": "varchar(80)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "forecast_category",
+          "type": "enum('pipeline','best_case','commit','closed')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "expected_arr",
+          "type": "decimal(14,2)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "probability_pct",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "created_date",
+          "type": "date",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "close_date",
+          "type": "date",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "last_activity_date",
+          "type": "date",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "loss_reason",
+          "type": "varchar(120)",
+          "null": "YES",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "account_id",
+          "REFERENCED_TABLE_NAME": "accounts",
+          "REFERENCED_COLUMN_NAME": "account_id"
+        },
+        {
+          "COLUMN_NAME": "owner_employee_id",
+          "REFERENCED_TABLE_NAME": "employees",
+          "REFERENCED_COLUMN_NAME": "employee_id"
+        }
+      ]
+    },
+    "payments": {
+      "row_count": 4100,
+      "columns": [
+        {
+          "name": "payment_id",
+          "type": "bigint",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "invoice_id",
+          "type": "bigint",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "paid_at",
+          "type": "datetime",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "payment_method",
+          "type": "enum('ach','wire','card','credits')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "amount",
+          "type": "decimal(14,2)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "payment_status",
+          "type": "enum('succeeded','failed','refunded')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "invoice_id",
+          "REFERENCED_TABLE_NAME": "invoices",
+          "REFERENCED_COLUMN_NAME": "invoice_id"
+        },
+        {
+          "COLUMN_NAME": "account_id",
+          "REFERENCED_TABLE_NAME": "accounts",
+          "REFERENCED_COLUMN_NAME": "account_id"
+        }
+      ]
+    },
+    "plainsql_users": {
+      "row_count": 2,
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar(64)",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "username",
+          "type": "varchar(100)",
+          "null": "NO",
+          "key": "UNI",
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "varchar(255)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "enum('admin','analyst','viewer')",
+          "null": "NO",
+          "key": "",
+          "default": "analyst"
+        },
+        {
+          "name": "tenant_id",
+          "type": "varchar(100)",
+          "null": "NO",
+          "key": "MUL",
+          "default": "default"
+        },
+        {
+          "name": "is_active",
+          "type": "tinyint(1)",
+          "null": "NO",
+          "key": "",
+          "default": "1"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "null": "YES",
+          "key": "",
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "null": "YES",
+          "key": "",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "foreign_keys": []
+    },
+    "plans": {
+      "row_count": 4,
+      "columns": [
+        {
+          "name": "plan_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "plan_name",
+          "type": "varchar(80)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "billing_model",
+          "type": "enum('seat_based','usage_based','hybrid')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "monthly_base_price",
+          "type": "decimal(12,2)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "included_seats",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "support_tier",
+          "type": "enum('standard','premium','enterprise')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": []
+    },
+    "product_usage_daily": {
+      "row_count": 12000,
+      "columns": [
+        {
+          "name": "usage_id",
+          "type": "bigint",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "workspace_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "feature_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "usage_date",
+          "type": "date",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "active_users",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "query_count",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "successful_query_count",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "failed_query_count",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "p95_latency_ms",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "compute_seconds",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "workspace_id",
+          "REFERENCED_TABLE_NAME": "workspaces",
+          "REFERENCED_COLUMN_NAME": "workspace_id"
+        },
+        {
+          "COLUMN_NAME": "account_id",
+          "REFERENCED_TABLE_NAME": "accounts",
+          "REFERENCED_COLUMN_NAME": "account_id"
+        },
+        {
+          "COLUMN_NAME": "feature_id",
+          "REFERENCED_TABLE_NAME": "feature_catalog",
+          "REFERENCED_COLUMN_NAME": "feature_id"
+        }
+      ]
+    },
+    "products": {
+      "row_count": 4,
+      "columns": [
+        {
+          "name": "product_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "product_name",
+          "type": "varchar(120)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "product_family",
+          "type": "varchar(80)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "launch_date",
+          "type": "date",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "active",
+          "type": "tinyint(1)",
+          "null": "YES",
+          "key": "",
+          "default": "1"
+        }
+      ],
+      "foreign_keys": []
+    },
+    "query_audit_log": {
+      "row_count": 2500,
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "user_id",
+          "type": "varchar(80)",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "tenant_id",
+          "type": "varchar(80)",
+          "null": "YES",
+          "key": "",
+          "default": "demo"
+        },
+        {
+          "name": "workspace_id",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "query_text",
+          "type": "text",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "generated_sql",
+          "type": "text",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "intent",
+          "type": "varchar(40)",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "route",
+          "type": "enum('fast_path','rag_sql','clarification','blocked')",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "retrieval_hits",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": "0"
+        },
+        {
+          "name": "execution_time_ms",
+          "type": "float",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "row_count",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": "0"
+        },
+        {
+          "name": "status",
+          "type": "enum('success','blocked','error')",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "error_message",
+          "type": "text",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "trace_id",
+          "type": "varchar(40)",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "null": "YES",
+          "key": "MUL",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "workspace_id",
+          "REFERENCED_TABLE_NAME": "workspaces",
+          "REFERENCED_COLUMN_NAME": "workspace_id"
+        }
+      ]
+    },
+    "query_feedback": {
+      "row_count": 2,
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "message_id",
+          "type": "varchar(64)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "user_query",
+          "type": "text",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "generated_sql",
+          "type": "text",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "rating",
+          "type": "enum('up','down')",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "null": "YES",
+          "key": "MUL",
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "foreign_keys": []
+    },
+    "subscriptions": {
+      "row_count": 360,
+      "columns": [
+        {
+          "name": "subscription_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "plan_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "owner_employee_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "enum('active','past_due','cancelled','trialing')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "seats_purchased",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "contracted_arr",
+          "type": "decimal(14,2)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "discount_pct",
+          "type": "decimal(5,2)",
+          "null": "YES",
+          "key": "",
+          "default": "0"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "account_id",
+          "REFERENCED_TABLE_NAME": "accounts",
+          "REFERENCED_COLUMN_NAME": "account_id"
+        },
+        {
+          "COLUMN_NAME": "plan_id",
+          "REFERENCED_TABLE_NAME": "plans",
+          "REFERENCED_COLUMN_NAME": "plan_id"
+        },
+        {
+          "COLUMN_NAME": "owner_employee_id",
+          "REFERENCED_TABLE_NAME": "employees",
+          "REFERENCED_COLUMN_NAME": "employee_id"
+        }
+      ]
+    },
+    "support_tickets": {
+      "row_count": 1600,
+      "columns": [
+        {
+          "name": "ticket_id",
+          "type": "bigint",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "workspace_id",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "contact_id",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "assigned_employee_id",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "priority",
+          "type": "enum('P1','P2','P3','P4')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "enum('open','pending_customer','resolved','closed')",
+          "null": "NO",
+          "key": "MUL",
+          "default": null
+        },
+        {
+          "name": "category",
+          "type": "varchar(80)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "subject",
+          "type": "varchar(220)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "datetime",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "first_response_minutes",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "resolution_minutes",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "csat_score",
+          "type": "int",
+          "null": "YES",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "account_id",
+          "REFERENCED_TABLE_NAME": "accounts",
+          "REFERENCED_COLUMN_NAME": "account_id"
+        },
+        {
+          "COLUMN_NAME": "workspace_id",
+          "REFERENCED_TABLE_NAME": "workspaces",
+          "REFERENCED_COLUMN_NAME": "workspace_id"
+        },
+        {
+          "COLUMN_NAME": "contact_id",
+          "REFERENCED_TABLE_NAME": "contacts",
+          "REFERENCED_COLUMN_NAME": "contact_id"
+        },
+        {
+          "COLUMN_NAME": "assigned_employee_id",
+          "REFERENCED_TABLE_NAME": "employees",
+          "REFERENCED_COLUMN_NAME": "employee_id"
+        }
+      ]
+    },
+    "ticket_events": {
+      "row_count": 3200,
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "bigint",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "ticket_id",
+          "type": "bigint",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "event_time",
+          "type": "datetime",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "actor_type",
+          "type": "enum('customer','agent','system')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "event_type",
+          "type": "enum('created','comment','status_change','escalated','sla_breach','resolved')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "note",
+          "type": "varchar(300)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "ticket_id",
+          "REFERENCED_TABLE_NAME": "support_tickets",
+          "REFERENCED_COLUMN_NAME": "ticket_id"
+        }
+      ]
+    },
+    "workspace_users": {
+      "row_count": 1800,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "workspace_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "varchar(180)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "enum('admin','analyst','viewer','engineer')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "last_active_at",
+          "type": "datetime",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "is_service_account",
+          "type": "tinyint(1)",
+          "null": "YES",
+          "key": "",
+          "default": "0"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "workspace_id",
+          "REFERENCED_TABLE_NAME": "workspaces",
+          "REFERENCED_COLUMN_NAME": "workspace_id"
+        },
+        {
+          "COLUMN_NAME": "account_id",
+          "REFERENCED_TABLE_NAME": "accounts",
+          "REFERENCED_COLUMN_NAME": "account_id"
+        }
+      ]
+    },
+    "workspaces": {
+      "row_count": 180,
+      "columns": [
+        {
+          "name": "workspace_id",
+          "type": "int",
+          "null": "NO",
+          "key": "PRI",
+          "default": null
+        },
+        {
+          "name": "account_id",
+          "type": "int",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "workspace_name",
+          "type": "varchar(160)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "environment",
+          "type": "enum('production','staging','sandbox')",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "cloud_region",
+          "type": "varchar(50)",
+          "null": "NO",
+          "key": "",
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "date",
+          "null": "NO",
+          "key": "",
+          "default": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "COLUMN_NAME": "account_id",
+          "REFERENCED_TABLE_NAME": "accounts",
+          "REFERENCED_COLUMN_NAME": "account_id"
+        }
+      ]
+    }
+  }
+}

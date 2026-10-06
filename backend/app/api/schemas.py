@@ -13,6 +13,7 @@ class GenerateSQLRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000, description="Natural language question")
     history: list[dict] = Field(default=[], description="Conversation history")
     execute: bool = Field(default=True, description="Execute the generated SQL immediately")
+    db_id: Optional[str] = Field(default="default", description="Target database identifier")
     clarification_response: Optional[str] = Field(default=None, description="User response to a clarification prompt")
     active_clarification: Optional[dict] = Field(default=None, description="Pending clarification state")
 

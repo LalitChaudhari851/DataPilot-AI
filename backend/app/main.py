@@ -267,6 +267,7 @@ def _register_legacy_chat(app: FastAPI, orchestrator, tracer, rate_limiter, inpu
         question: str = Field(..., min_length=1, max_length=1000)
         history: Optional[List[dict]] = []
         conversation_id: Optional[str] = None
+        db_id: Optional[str] = "default"
 
     class FeedbackRequest(BaseModel):
         message_id: str = Field(..., min_length=1, max_length=64)
@@ -335,9 +336,11 @@ def _register_legacy_chat(app: FastAPI, orchestrator, tracer, rate_limiter, inpu
                 content={"error": f"Query blocked: {rejection_reason}"},
             )
 
+        target_db_id = getattr(request, "db_id", None) or "default"
         result = await orchestrator.aprocess_query(
             user_query=sanitized,
             conversation_history=input_validator.sanitize_history(request.history or []),
+            db_id=target_db_id,
         )
         tracer.trace_query(result)
 
@@ -417,12 +420,13 @@ def _register_legacy_chat(app: FastAPI, orchestrator, tracer, rate_limiter, inpu
                         headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
                     )
 
+        target_db_id = getattr(request, "db_id", None) or "default"
         # ── Redis cache check ─────────────────────────────
         cache = _app_state.get("cache")
         cached_result = None
         if cache:
             try:
-                cached_result = cache.get(sanitized)
+                cached_result = cache.get(sanitized, db_id=target_db_id)
             except Exception:
                 pass
 
@@ -470,6 +474,7 @@ def _register_legacy_chat(app: FastAPI, orchestrator, tracer, rate_limiter, inpu
                 async for event in orchestrator.aprocess_query_streaming(
                     user_query=sanitized,
                     conversation_history=safe_history,
+                    db_id=target_db_id,
                 ):
                     last_event = event
                     event_type = event.get("type", "")
@@ -500,7 +505,7 @@ def _register_legacy_chat(app: FastAPI, orchestrator, tracer, rate_limiter, inpu
                             "answer": [], "intent": "", "complexity": "",
                             "row_count": 0, "insights": [], "follow_ups": [],
                         }
-                        cache.set(sanitized, cache_payload)
+                        cache.set(sanitized, cache_payload, db_id=target_db_id)
                     except Exception:
                         pass
 
