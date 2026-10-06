@@ -7,6 +7,7 @@ from app.api.schemas import (
     LoginRequest, RegisterRequest, TokenResponse,
     APIKeyRequest, APIKeyResponse,
     SchemaResponse, AnalyticsResponse, HealthResponse,
+    DatabaseItem, DatabaseListResponse,
 )
 
 router = APIRouter(tags=["System"])
@@ -102,15 +103,66 @@ def create_system_router(auth_service, auth_dep, db_pool, rag_retriever, llm_rou
 
     schema_router = APIRouter(prefix="/api/v1", tags=["Schema"])
 
+    @schema_router.get("/databases", response_model=DatabaseListResponse)
+    def list_databases(current_user: dict = Depends(auth_dep)):
+        """List available databases for the multi-database selector."""
+        from app.db.registry import get_database_registry
+        registry = get_database_registry()
+        
+        db_items = []
+        # 1. PlainSQL SaaS (default)
+        saas_tables = db_pool.get_tables()
+        db_items.append(DatabaseItem(
+            db_id="default",
+            name="PlainSQL SaaS",
+            dialect="mysql",
+            description="Production SaaS dataset (accounts, subscriptions, invoices, 22 tables)",
+            table_count=len(saas_tables),
+            target="TiDB Cloud (chatbot)"
+        ))
+        
+        # 2. Spider E-Commerce
+        if registry.has_database("E_commerce"):
+            try:
+                ecom_pool = registry.get_pool("E_commerce")
+                ecom_tables = ecom_pool.get_tables()
+                ecom_count = len(ecom_tables)
+            except Exception:
+                ecom_count = 11
+            db_items.append(DatabaseItem(
+                db_id="E_commerce",
+                name="E-Commerce (Spider)",
+                dialect="mysql",
+                description="Spider 2.0-Lite benchmark dataset (orders, products, customers, 11 tables)",
+                table_count=ecom_count,
+                target="TiDB Cloud (ecommerce)"
+            ))
+
+        return DatabaseListResponse(databases=db_items, default="default")
+
     @schema_router.get("/schema", response_model=SchemaResponse)
-    def get_schema(current_user: dict = Depends(auth_dep)):
-        """Get database schema for the current tenant."""
-        tables = db_pool.get_tables()
-        schema_text = db_pool.get_full_schema()
+    def get_schema(db_id: str = "default", current_user: dict = Depends(auth_dep)):
+        """Get database schema for the specified db_id."""
+        from app.db.registry import get_database_registry
+        registry = get_database_registry()
+
+        target_id = db_id or "default"
+        if target_id != "default" and registry.has_database(target_id):
+            pool = registry.get_pool(target_id)
+            dialect = registry.get_dialect(target_id)
+        else:
+            pool = db_pool
+            target_id = "default"
+            dialect = "mysql"
+
+        tables = pool.get_tables()
+        schema_text = pool.get_full_schema()
         return SchemaResponse(
             tables=tables,
             schema_text=schema_text,
             table_count=len(tables),
+            db_id=target_id,
+            dialect=dialect,
         )
 
     @schema_router.post("/schema/refresh")

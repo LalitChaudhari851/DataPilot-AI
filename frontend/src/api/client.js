@@ -6,6 +6,7 @@ export const API = {
   conversations: `${BASE}/api/v1/conversations`,
   health: `${BASE}/api/v1/health`,
   schema: `${BASE}/api/v1/schema`,
+  databases: `${BASE}/api/v1/databases`,
 };
 
 const CHAT_RULES = [
@@ -65,8 +66,39 @@ export async function fetchHealth() {
   return res.json();
 }
 
-export async function fetchSchema() {
-  const res = await fetch(API.schema);
+export async function fetchDatabases() {
+  try {
+    const res = await fetch(API.databases);
+    if (!res.ok) throw new Error('Databases fetch failed');
+    return await res.json();
+  } catch {
+    return {
+      databases: [
+        {
+          db_id: 'default',
+          name: 'PlainSQL SaaS',
+          dialect: 'mysql',
+          description: 'Production SaaS dataset (accounts, subscriptions, invoices, 22 tables)',
+          table_count: 22,
+          target: 'TiDB Cloud (chatbot)'
+        },
+        {
+          db_id: 'E_commerce',
+          name: 'E-Commerce (Spider)',
+          dialect: 'mysql',
+          description: 'Spider 2.0-Lite benchmark (orders, products, customers, 11 tables)',
+          table_count: 11,
+          target: 'TiDB Cloud (ecommerce)'
+        }
+      ],
+      default: 'default'
+    };
+  }
+}
+
+export async function fetchSchema(db_id = 'default') {
+  const url = db_id ? `${API.schema}?db_id=${encodeURIComponent(db_id)}` : API.schema;
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Schema fetch failed');
   return res.json();
 }
@@ -93,11 +125,24 @@ export async function submitFeedback({ message_id, user_query, generated_sql, ra
   });
 }
 
-export async function streamChat({ question, history = [], onChunk }) {
+export async function executeManualQuery({ sql, db_id = 'default' }) {
+  const res = await fetch(`${BASE}/api/v1/execute-query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql, db_id: db_id || 'default' }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || body.error || `Execution failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function streamChat({ question, history = [], db_id = 'default', onChunk }) {
   const res = await fetch(API.stream, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question, history: history.slice(-6) }),
+    body: JSON.stringify({ question, history: history.slice(-6), db_id: db_id || 'default' }),
   });
 
   if (!res.ok) {

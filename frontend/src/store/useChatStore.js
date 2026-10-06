@@ -27,6 +27,7 @@ function persistState(chats, activeChatId, savedQueries) {
       schemaFolderOpen: state.schemaFolderOpen ?? false,
       expandedGroups: state.expandedGroups ?? {},
       expandedTables: state.expandedTables ?? {},
+      selectedDbId: state.selectedDbId ?? 'default',
     }));
   } catch { /* quota errors are non-fatal */ }
 }
@@ -99,6 +100,45 @@ const useChatStore = create((set, get) => ({
   setSchemaText: (text) => set({ schemaText: text }),
   selectedSchema: 'default',
   setSelectedSchema: (s) => set({ selectedSchema: s }),
+
+  // ── Database Context (Multi-Database Support) ────────────
+  selectedDbId: persisted?.selectedDbId ?? 'default',
+  availableDatabases: [
+    {
+      db_id: 'default',
+      name: 'PlainSQL SaaS',
+      dialect: 'mysql',
+      description: 'Production SaaS schema (accounts, subscriptions, invoices, 22 tables)',
+      table_count: 22,
+      target: 'TiDB Cloud (chatbot)',
+    },
+    {
+      db_id: 'E_commerce',
+      name: 'E-Commerce (Spider)',
+      dialect: 'mysql',
+      description: 'Spider 2.0-Lite benchmark (orders, products, customers, 11 tables)',
+      table_count: 11,
+      target: 'TiDB Cloud (ecommerce)',
+    },
+  ],
+  setAvailableDatabases: (databases) => set({ availableDatabases: databases }),
+  setSelectedDbId: (dbId) => {
+    set(s => {
+      setTimeout(() => persistState(get().chats, get().activeChatId, get().savedQueries), 0);
+      return { selectedDbId: dbId, selectedSchema: 'default' };
+    });
+    // Trigger schema reload for the newly selected database
+    import('../api/client').then(({ fetchSchema }) => {
+      fetchSchema(dbId)
+        .then(d => {
+          if (d.tables) get().setSchemaTables(d.tables);
+          if (d.schema_text) get().setSchemaText(d.schema_text);
+        })
+        .catch(() => {});
+    });
+    const dbName = dbId === 'E_commerce' ? 'E-Commerce (Spider)' : 'PlainSQL SaaS';
+    get().addToast(`Switched active context to ${dbName} (TiDB Cloud)`, 'info');
+  },
 
   // ── Toasts ─────────────────────────────────────────────
   toasts: [],

@@ -248,7 +248,7 @@ databases:
         confidence: 1.0
 
       - term: nrr
-        meaning: "Net Revenue Retention percentage comparing active contracted ARR against total contracted ARR"
+        meaning: "Proxy Net Revenue Retention percentage comparing active contracted ARR against total contracted ARR (Active ARR / Total ARR * 100). Note: Canonical cohort NRR requires cohort-based starting ARR with expansions and contractions, which is not tracked in this schema."
         preferred_columns:
           - subscriptions.contracted_arr
           - subscriptions.status
@@ -258,6 +258,7 @@ databases:
           - net revenue retention
           - nrr percentage
           - retention rate
+          - proxy retention
         examples:
           - "Calculate NRR by customer segment"
           - "Show quarterly net revenue retention"

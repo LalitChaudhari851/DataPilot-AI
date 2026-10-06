@@ -44,6 +44,7 @@ class QueryResult(BaseModel):
 class ExecuteQueryRequest(BaseModel):
     """Request to execute a specific SQL query."""
     sql: str = Field(..., min_length=1, max_length=5000, description="SQL query to execute")
+    db_id: Optional[str] = Field(default="default", description="Target database identifier")
 
 
 # ── Auth Schemas ─────────────────────────────────────────
@@ -114,11 +115,27 @@ class InsightsResponse(BaseModel):
 
 # ── Schema / Analytics Schemas ───────────────────────────
 
+class DatabaseItem(BaseModel):
+    db_id: str
+    name: str
+    dialect: str
+    description: str
+    table_count: int
+    target: str
+
+
+class DatabaseListResponse(BaseModel):
+    databases: list[DatabaseItem]
+    default: str
+
+
 class SchemaResponse(BaseModel):
     """Database schema response."""
     tables: list[str]
     schema_text: str
     table_count: int
+    db_id: Optional[str] = "default"
+    dialect: Optional[str] = "mysql"
 
 
 class AnalyticsResponse(BaseModel):

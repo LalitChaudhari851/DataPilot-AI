@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Tag, Clock, Hash, Search } from 'lucide-react';
+import { Tag, Clock, Hash, Search, Database } from 'lucide-react';
 
 const intentColors = {
   analytical: { bg: 'rgba(99,102,241,0.10)', border: 'rgba(99,102,241,0.22)', text: '#818cf8' },
@@ -25,9 +25,17 @@ function Badge({ icon: Icon, label, value, colors, delay = 0 }) {
   );
 }
 
-export default function MetaBadges({ intent, executionTimeMs, rowCount }) {
+export default function MetaBadges({ intent, executionTimeMs, rowCount, dbId }) {
   const colors = intentColors[intent?.toLowerCase()] ?? intentColors.default;
   const badges = [];
+
+  const dbName = dbId === 'E_commerce' ? 'E-Commerce' : 'PlainSQL SaaS';
+  badges.push({
+    icon: Database,
+    label: 'DB',
+    value: `${dbName} (TiDB)`,
+    colors: { bg: 'rgba(129,140,248,0.10)', border: 'rgba(129,140,248,0.25)', text: '#a5b4fc' },
+  });
 
   badges.push({ icon: Search, label: 'RAG', value: 'Active', colors: { bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.18)', text: '#22d3ee' } });
 

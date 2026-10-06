@@ -29,6 +29,21 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 20
     DB_POOL_TIMEOUT: int = 30
     DB_QUERY_TIMEOUT: int = 30
+    ECOMMERCE_DB_URI: Optional[str] = Field(
+        default=None,
+        description="Optional connection URI for E_commerce in TiDB/MySQL. Defaults to DB_URI with /ecommerce database path.",
+    )
+
+    @property
+    def resolved_ecommerce_db_uri(self) -> Optional[str]:
+        if self.ECOMMERCE_DB_URI:
+            return self.ECOMMERCE_DB_URI
+        if self.DB_URI and ("mysql" in self.DB_URI or "tidb" in self.DB_URI):
+            from urllib.parse import urlparse, urlunparse
+            p = urlparse(self.DB_URI)
+            if p.path:
+                return urlunparse((p.scheme, p.netloc, "/ecommerce", p.params, p.query, p.fragment))
+        return None
 
     # ── Redis ────────────────────────────────────────────
     REDIS_URL: str = Field(default="redis://localhost:6379/0")

@@ -115,16 +115,23 @@ def _llm_grounded_summary(
         {
             "role": "system",
             "content": (
-                "Summarize SQL results in 1-2 sentences. Use ONLY provided numbers. "
-                "Do NOT invent or estimate values."
+                "You are an executive business data analyst. Summarize SQL results in 1-2 crisp, professional sentences.\n"
+                "Structure:\n"
+                "1. Most important finding first (top performer, highest metric, or direct answer to the query).\n"
+                "2. Supporting factual result directly from the returned data.\n"
+                "3. One useful context or caveat if appropriate.\n"
+                "Strict Constraints:\n"
+                "- DO NOT calculate unweighted averages across groups or periods (never average segment-quarter rows).\n"
+                "- DO NOT invent or estimate numbers.\n"
+                "- If currency, format as $; if percentage (e.g. NRR), format as %."
             ),
         },
         {
             "role": "user",
             "content": (
-                f"Q: \"{user_query}\"\nRows: {row_count}\n"
-                f"{agg_text}\nData sample:\n{result_text}\n"
-                "Brief summary:"
+                f"Question: \"{user_query}\"\nRows returned: {row_count}\n"
+                f"{agg_text}\nData rows:\n{result_text}\n"
+                "Executive Summary:"
             ),
         },
     ]
@@ -148,40 +155,64 @@ def _build_deterministic_summary(
     execution_time_ms: float,
 ) -> str:
     """
-    Build a factual summary purely from the data — no LLM involved.
-    This is the guaranteed-accurate fallback.
+    Build a factual executive summary purely from the data — no LLM involved.
+    Follows: 1. Most important finding, 2. Supporting result, 3. Caveat if applicable.
+    Never averages across arbitrary segment-quarter rows.
     """
-    parts = [f"Found **{row_count}** result{'s' if row_count != 1 else ''}."]
+    if not results or not columns:
+        return "No data returned for this query."
 
-    # Identify numeric columns and compute totals
-    aggregates = _compute_aggregates(results, columns)
+    # Identify true measure columns (exclude yr, qtr, and IDs)
+    def _is_measure(c: str) -> bool:
+        cl = c.lower()
+        if cl in ["yr", "year", "qtr", "quarter", "month", "day", "date"] or "_id" in cl or cl == "id":
+            return False
+        return any(v.get(c) is not None and isinstance(v.get(c), (int, float)) for v in results[:5])
 
-    if aggregates:
-        for col, agg in list(aggregates.items())[:3]:  # Top 3 numeric columns
-            col_label = col.replace("_", " ").title()
-            if "revenue" in col.lower() or "amount" in col.lower() or "total" in col.lower() or "sum" in col.lower() or "sales" in col.lower():
-                parts.append(f"Total **{col_label}**: ₹{agg['sum']:,.2f}")
-            elif "avg" in col.lower() or "average" in col.lower():
-                parts.append(f"**{col_label}** ranges from {agg['min']:,.2f} to {agg['max']:,.2f} (avg: {agg['avg']:,.2f})")
-            else:
-                if row_count > 1:
-                    parts.append(f"**{col_label}**: total {agg['sum']:,.2f}, avg {agg['avg']:,.2f}")
+    measure_cols = [c for c in columns if _is_measure(c)]
+    dim_cols = [c for c in columns if not _is_measure(c) and c.lower() not in ["yr", "year", "qtr", "quarter"]]
 
-    # Show top result if it's a small dataset
-    if row_count <= MAX_ROWS_FOR_DETAIL and row_count > 0:
-        # Show the first row as a highlight
-        first_row = results[0]
-        text_cols = [c for c in columns if c not in aggregates]
-        if text_cols:
-            top_label = str(first_row.get(text_cols[0], ""))
-            if top_label:
-                num_cols = list(aggregates.keys())
-                if num_cols:
-                    top_val = first_row.get(num_cols[0], "")
-                    try:
-                        parts.append(f"Top result: **{top_label}** with {num_cols[0].replace('_', ' ')}: {float(top_val):,.2f}")
-                    except (ValueError, TypeError):
-                        pass
+    parts = []
+
+    # 1. Most important finding
+    if results and measure_cols:
+        primary_measure = measure_cols[0]
+        m_label = primary_measure.replace("_", " ").title()
+
+        if dim_cols:
+            dim = dim_cols[0]
+            # Find best row by primary measure
+            try:
+                best_row = max(results, key=lambda r: float(r.get(primary_measure) or 0))
+                best_label = str(best_row.get(dim, "")).replace("_", " ").title()
+                best_val = float(best_row.get(primary_measure) or 0)
+                
+                if "pct" in primary_measure.lower() or "rate" in primary_measure.lower():
+                    parts.append(f"**{best_label}** recorded the highest {m_label} at **{best_val:.1f}%**.")
+                elif any(k in primary_measure.lower() for k in ["sales", "arr", "revenue", "price", "amount"]):
+                    parts.append(f"**{best_label}** leads with **${best_val:,.2f}** in {m_label.lower()}.")
+                else:
+                    parts.append(f"**{best_label}** leads with {m_label.lower()} of **{best_val:,.2f}**.")
+            except Exception:
+                parts.append(f"Analysis returned **{row_count}** record{'s' if row_count != 1 else ''}.")
+        else:
+            first_val = float(results[0].get(primary_measure) or 0)
+            parts.append(f"Result for {m_label.lower()} is **{first_val:,.2f}**.")
+    else:
+        parts.append(f"Query returned **{row_count}** record{'s' if row_count != 1 else ''}.")
+
+    # 2. Supporting result
+    if row_count > 1 and measure_cols:
+        primary_measure = measure_cols[0]
+        if not ("pct" in primary_measure.lower() or "rate" in primary_measure.lower()):
+            total = sum(float(r.get(primary_measure) or 0) for r in results)
+            parts.append(f"Cumulative total across all {row_count} reported items is **${total:,.2f}**.")
+        else:
+            parts.append(f"Results span across {row_count} comparative groupings.")
+
+    # 3. Context / Caveat
+    if any("nrr" in c.lower() for c in columns):
+        parts.append("Retention metric reflects active-to-total contracted ARR proxy.")
 
     return " ".join(parts)
 

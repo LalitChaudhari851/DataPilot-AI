@@ -55,6 +55,13 @@ const SchemaTree = memo(function SchemaTree({
   const setExpandedGroup = useChatStore(s => s.setExpandedGroup);
   const expandedTables = useChatStore(s => s.expandedTables);
   const toggleExpandedTable = useChatStore(s => s.toggleExpandedTable);
+  const selectedDbId = useChatStore(s => s.selectedDbId);
+  const availableDatabases = useChatStore(s => s.availableDatabases);
+
+  const currentDb = availableDatabases.find(d => d.db_id === selectedDbId) || {
+    name: selectedDbId === 'E_commerce' ? 'E-Commerce (Spider)' : 'PlainSQL SaaS',
+    table_count: schemaTables.length,
+  };
 
   // Parse schema text into structured metadata
   const parsedSchema = useMemo(() => parseSchemaText(schemaText), [schemaText]);
@@ -124,6 +131,17 @@ const SchemaTree = memo(function SchemaTree({
               <SchemaSkeletons />
             ) : (
               <div className="px-2 pb-1">
+                {/* Active Database Context Pill */}
+                <div className="mb-2 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-[11px]">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                    <span className="font-semibold text-white truncate text-[11px]">{currentDb.name}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-brand-light bg-brand-dim/30 border border-brand/20 px-1 py-0.2 rounded font-medium flex-shrink-0">
+                    {schemaTables.length} tables
+                  </span>
+                </div>
+
                 {/* Tables folder toggle */}
                 <button
                   onClick={() => setSchemaFolderOpen(v => !v)}

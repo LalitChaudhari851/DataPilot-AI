@@ -93,7 +93,7 @@ class DatabasePool:
         import os
         import json
         schema_file = "./chroma_db/enriched_schema.json"
-        if os.path.exists(schema_file):
+        if self.db_name in ("chatbot", "default") and os.path.exists(schema_file):
             try:
                 with open(schema_file, "r", encoding="utf-8") as f:
                     enriched_tables = json.load(f)

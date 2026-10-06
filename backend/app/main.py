@@ -86,16 +86,30 @@ async def lifespan(app: FastAPI):
         llm_router = ModelRouter(llm_config)
         _app_state["llm_router"] = llm_router
 
+        # ── Database Registry ────────────────────────────
+        from app.db.registry import get_database_registry
+        db_registry = get_database_registry()
+        if not db_registry.has_database("default"):
+            db_registry.register("default", db_pool, dialect="mysql", path="default")
+        _app_state["db_registry"] = db_registry
+
         # ── RAG Retriever ────────────────────────────────
         from app.rag.retriever import HybridRetriever
         logger.info("initializing_rag")
-        rag_retriever = HybridRetriever(db_pool, chroma_persist_dir=settings.CHROMA_PERSIST_DIR)
+        rag_retriever = HybridRetriever(db_pool, chroma_persist_dir=settings.CHROMA_PERSIST_DIR, registry=db_registry)
+        if db_registry.has_database("E_commerce"):
+            try:
+                ecom_pool = db_registry.get_pool("E_commerce")
+                rag_retriever.index_database("E_commerce", db_pool=ecom_pool)
+                logger.info("ecommerce_schema_rag_indexed", tables=len(ecom_pool.get_tables()))
+            except Exception as e:
+                logger.warning("ecommerce_rag_index_warning", error=str(e))
         _app_state["rag_retriever"] = rag_retriever
 
         # ── Agent Orchestrator ───────────────────────────
         from app.agents.orchestrator import AgentOrchestrator
         logger.info("building_agent_graph")
-        orchestrator = AgentOrchestrator(llm_router, rag_retriever, db_pool)
+        orchestrator = AgentOrchestrator(llm_router, rag_retriever, db_pool, registry=db_registry)
         _app_state["orchestrator"] = orchestrator
 
         # ── Auto-migrate persistence tables ────────────

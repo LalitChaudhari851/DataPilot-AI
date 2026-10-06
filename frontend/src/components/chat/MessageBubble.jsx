@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Copy, Database, RefreshCw, Rows3, Sigma, ThumbsDown, ThumbsUp, Check, AlertTriangle } from 'lucide-react';
-import PipelineTrace from '../pipeline/PipelineTrace';
-import SQLBlock from '../artifacts/SQLBlock';
+import { Copy, RefreshCw, ThumbsDown, ThumbsUp, Check, AlertTriangle } from 'lucide-react';
 import ResultTable from '../artifacts/ResultTable';
 import ChartView from '../artifacts/ChartView';
-import MetaBadges from '../artifacts/MetaBadges';
-import InsightBlock from '../artifacts/InsightBlock';
+import SemanticKPICards from '../artifacts/SemanticKPICards';
+import MetricDefinitionCard from '../artifacts/MetricDefinitionCard';
+import TechnicalDetailsAccordion from '../artifacts/TechnicalDetailsAccordion';
 import useChatStore from '../../store/useChatStore';
 
 const MarkdownText = React.memo(function MarkdownText({ text = '' }) {
@@ -24,47 +23,6 @@ const MarkdownText = React.memo(function MarkdownText({ text = '' }) {
 function extractRows(data) {
   const rows = data?.answer || data?.data || [];
   return Array.isArray(rows) && rows.length && typeof rows[0] === 'object' ? rows : [];
-}
-
-function numericColumns(rows) {
-  if (!rows.length) return [];
-  return Object.keys(rows[0]).filter(col => rows.some(row => Number.isFinite(Number(row[col]))));
-}
-
-function formatNumber(value) {
-  return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-
-function ResultSummary({ rows }) {
-  if (!rows.length) return null;
-  const nums = numericColumns(rows);
-  const metric = nums[0];
-  const total = metric ? rows.reduce((sum, row) => sum + Number(row[metric] || 0), 0) : rows.length;
-  const cards = [
-    { icon: Rows3, label: 'Rows returned', value: formatNumber(rows.length) },
-    { icon: Sigma, label: metric ? `Total ${metric.replace(/_/g, ' ')}` : 'Records', value: formatNumber(total) },
-    { icon: Database, label: 'Columns', value: Object.keys(rows[0]).length },
-  ];
-
-  return (
-    <div className="mb-4 grid gap-3 sm:grid-cols-3">
-      {cards.map(({ icon: Icon, label, value }, i) => (
-        <motion.div
-          key={label}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.05 }}
-          className="rounded-xl p-3 bg-surface-1 border border-border-1"
-        >
-          <div className="mb-1 flex items-center gap-2 text-t4">
-            <Icon size={12} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
-          </div>
-          <p className="truncate font-mono text-lg font-bold text-white">{value}</p>
-        </motion.div>
-      ))}
-    </div>
-  );
 }
 
 function ThinkingStatus({ stage }) {
@@ -105,14 +63,15 @@ function UserBubble({ content }) {
 function AssistantBubble({ message, chatId, onRegenerate }) {
   const addToast = useChatStore(s => s.addToast);
   const setFeedback = useChatStore(s => s.setFeedback);
+  const updateMessage = useChatStore(s => s.updateMessage);
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const data = message.data ?? {};
   const rows = extractRows(data);
   const isChatMode = Boolean(message._chatMode);
-  const hasSQL = Boolean(data.sql || message._streamingSql);
   const pipelineStep = (message.pending || message.streaming) ? (message._pipelineStep ?? 0) : 5;
+  const dbId = message._dbId || data.db_id || 'default';
 
   const handleFeedback = async (rating) => {
     setFeedback(chatId, message.id, rating);
@@ -132,6 +91,28 @@ function AssistantBubble({ message, chatId, onRegenerate }) {
     addToast('Response copied', 'success');
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleResultUpdate = (newResult) => {
+    updateMessage(chatId, message.id, {
+      data: {
+        ...data,
+        sql: newResult.sql,
+        data: newResult.data,
+        row_count: newResult.row_count,
+        column_names: newResult.column_names,
+        execution_time_ms: newResult.execution_time_ms,
+        chart_config: newResult.chart_config,
+        chart_type: newResult.chart_type,
+        insights: newResult.insights,
+        follow_ups: newResult.follow_ups,
+        message: newResult.message,
+      },
+      streamText: newResult.message,
+    });
+  };
+
+  const answerText = message.streamText || data.message;
+  const isStreaming = message.streaming || message.pending;
 
   return (
     <div className="mb-6 flex items-start gap-4">
@@ -174,41 +155,44 @@ function AssistantBubble({ message, chatId, onRegenerate }) {
             </div>
           ) : (
             <>
-              <PipelineTrace
-                activeStep={message.streaming || message.pending ? pipelineStep : 5}
-                isChatMode={isChatMode}
-                stageText={message._stageText}
-              />
-
-              {message.pending && !message.data && !message.streamText && !message._streamingSql && !message._pipelineStep && (
+              {/* Thinking / Streaming Indicator */}
+              {message.pending && !data.sql && !answerText && (
                 <ThinkingStatus stage={message._stageText} />
               )}
 
-              {Boolean(data.sql) && (
-                <MetaBadges intent={data.intent} executionTimeMs={data.execution_time_ms} rowCount={data.row_count ?? rows.length} />
-              )}
-
-              {hasSQL && (
-                <div className={message._pipelineStep === 1 && message.streaming ? 'typing-cursor block' : ''}>
-                  <SQLBlock sql={message._streamingSql || data.sql} messageId={message.id} />
+              {/* 1. ANSWER (Visible First!) */}
+              {answerText && (
+                <div className={`mb-4 text-sm leading-relaxed text-t1 font-medium ${isStreaming && message._pipelineStep >= 4 ? 'typing-cursor block' : ''}`}>
+                  <MarkdownText text={answerText} />
                 </div>
               )}
 
-              {rows.length > 0 && <ResultSummary rows={rows} />}
-
-              {(message.streamText || data.message) && (
-                <div className={`mb-4 text-sm leading-relaxed text-t2 font-medium ${message.streaming && message._pipelineStep >= 4 ? 'typing-cursor block' : ''}`}>
-                  <MarkdownText text={message.streamText || data.message} />
-                </div>
+              {/* 2. METRIC DEFINITION (If NRR or custom metric) */}
+              {rows.length > 0 && (
+                <MetricDefinitionCard 
+                  columns={data.column_names || Object.keys(rows[0] || {})} 
+                  userQuery={message._userQuery || ''} 
+                  sql={data.sql || ''} 
+                />
               )}
 
-              {rows.length > 0 && <ResultTable rows={rows} />}
-              {rows.length >= 2 && <ChartView rows={rows} />}
+              {/* 3. MEANINGFUL KPIS (Only from true measures, no yr/columns) */}
+              {rows.length > 0 && !isStreaming && (
+                <SemanticKPICards rows={rows} />
+              )}
 
-              <InsightBlock insights={data.insights} explanation={data.explanation || data.sql_explanation} />
+              {/* 4. VISUALIZATION (Chart) */}
+              {rows.length >= 2 && !isStreaming && (
+                <ChartView rows={rows} backendChartConfig={data.chart_config} />
+              )}
 
-              {/* Follow-up questions */}
-              {Array.isArray(data.follow_ups) && data.follow_ups.length > 0 && !message.streaming && (
+              {/* 5. RESULTS TABLE */}
+              {rows.length > 0 && !isStreaming && (
+                <ResultTable rows={rows} />
+              )}
+
+              {/* 6. FOLLOW-UP QUESTIONS */}
+              {Array.isArray(data.follow_ups) && data.follow_ups.length > 0 && !isStreaming && (
                 <div className="mt-4 pt-3 border-t border-border-1">
                   <button
                     onClick={() => setFollowUpOpen(v => !v)}
@@ -238,6 +222,27 @@ function AssistantBubble({ message, chatId, onRegenerate }) {
                     )}
                   </AnimatePresence>
                 </div>
+              )}
+
+              {/* 7. COLLAPSED TECHNICAL DETAILS (SQL, Trace, Reasoning, Insights, Metadata) */}
+              {(Boolean(data.sql || message._streamingSql) || Boolean(data.explanation || data.sql_explanation) || isStreaming) && (
+                <TechnicalDetailsAccordion
+                  sql={message._streamingSql || data.sql}
+                  messageId={message.id}
+                  explanation={data.explanation || data.sql_explanation}
+                  pipelineStep={pipelineStep}
+                  isChatMode={isChatMode}
+                  stageText={message._stageText}
+                  insights={data.insights || []}
+                  metadata={{
+                    intent: data.intent,
+                    executionTimeMs: data.execution_time_ms,
+                    rowCount: data.row_count ?? rows.length,
+                    traceId: data.trace_id,
+                  }}
+                  dbId={dbId}
+                  onResultUpdate={handleResultUpdate}
+                />
               )}
             </>
           )}

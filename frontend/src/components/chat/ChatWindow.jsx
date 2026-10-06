@@ -12,9 +12,18 @@ export default function ChatWindow({ onPrompt, onRegenerate }) {
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const messages = chat?.messages ?? [];
 
-  // Auto-scroll to bottom on new messages / streaming
+  // Reset to top when conversation is empty (New Analysis)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length === 0 && scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [messages.length, chat?.id]);
+
+  // Auto-scroll to bottom only when messages exist and are added or streaming
+  useEffect(() => {
+    if (messages.length > 0) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages.length, messages[messages.length - 1]?.streaming]);
 
   // Show scroll-to-bottom button when user scrolls up

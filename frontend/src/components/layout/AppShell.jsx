@@ -65,21 +65,27 @@ export default function AppShell() {
     }
 
     // ── Full AI pipeline (SQL mode) ─────────────────────────
-    const assembled = { intent: '', sql: '', explanation: '', answer: [], message: '', insights: [], follow_ups: [], row_count: 0, execution_time_ms: 0 };
+    const activeDbId = store.selectedDbId || 'default';
+    const assembled = { intent: '', sql: '', explanation: '', answer: [], message: '', insights: [], follow_ups: [], row_count: 0, execution_time_ms: 0, db_id: activeDbId };
     let _accumulatedSql = '';
     let _accumulatedText = '';
     let _currentStep = 0;
 
+    updateMessage(chat.id, pendingId, { _dbId: activeDbId });
+
     try {
       await streamChat({
-        question: store.selectedSchema !== 'default' ? `${question}\n\nUse table: ${store.selectedSchema}` : question,
+        question: (store.selectedSchema && store.selectedSchema !== 'default') 
+          ? `${question}\n\nUse table: ${store.selectedSchema}` 
+          : question,
+        db_id: activeDbId,
         history: (store.getActiveChat()?.context ?? []).slice(-6),
         onChunk: (type, chunk) => {
           switch (type) {
             case 'stage': {
               const stepKey = Object.keys(STAGE_TO_STEP).find(k => chunk.message?.includes(k));
               _currentStep = stepKey ? STAGE_TO_STEP[stepKey] : _currentStep;
-              updateMessage(chat.id, pendingId, { _stageText: chunk.message, _pipelineStep: _currentStep, pending: true, streaming: true });
+              updateMessage(chat.id, pendingId, { _stageText: chunk.message, _pipelineStep: _currentStep, pending: true, streaming: true, _dbId: activeDbId });
               break;
             }
             case 'token':
@@ -127,7 +133,7 @@ export default function AppShell() {
               assembled.row_count = chunk.row_count ?? 0;
               assembled.execution_time_ms = chunk.execution_time_ms ?? 0;
               _currentStep = 3;
-              updateMessage(chat.id, pendingId, { data: { ...assembled }, _pipelineStep: 3, streaming: true });
+              updateMessage(chat.id, pendingId, { data: { ...assembled, db_id: activeDbId }, _pipelineStep: 3, streaming: true, _dbId: activeDbId });
               break;
             case 'message':
               assembled.message = chunk.message ?? _accumulatedText;
@@ -135,11 +141,12 @@ export default function AppShell() {
               assembled.follow_ups = chunk.follow_ups ?? [];
               _currentStep = 4;
               updateMessage(chat.id, pendingId, { 
-                data: { ...assembled }, 
+                data: { ...assembled, db_id: activeDbId }, 
                 streamText: assembled.message || _accumulatedText, 
                 streaming: false, 
                 pending: false,
-                _pipelineStep: 5 
+                _pipelineStep: 5,
+                _dbId: activeDbId,
               });
               break;
             case 'error':

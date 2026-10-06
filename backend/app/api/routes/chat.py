@@ -118,34 +118,84 @@ def create_chat_router(orchestrator, auth_dep, cache, rate_limiter, tracer, expl
 
     @router.post("/execute-query", response_model=QueryResult)
     def execute_query(request: ExecuteQueryRequest, current_user: dict = Depends(auth_dep)):
-        """Execute a user-provided SQL query (must pass safety validation)."""
-        from app.agents.sql_validation import sql_validation_node
+        """Execute a user-provided SQL query with full validation, guardrails, and visualization."""
+        target_db_id = getattr(request, "db_id", None) or "default"
+        
+        # Resolve target database pool
+        if hasattr(orchestrator, "registry") and orchestrator.registry and orchestrator.registry.has_database(target_db_id):
+            target_pool = orchestrator.registry.get_pool(target_db_id)
+        else:
+            target_pool = orchestrator.db_pool
 
-        # Validate the SQL
-        validation_state = {"generated_sql": request.sql, "retry_count": 0, "trace_id": "manual"}
+        # 1. Validate SQL via AST analysis
+        from app.agents.sql_validation import sql_validation_node
+        validation_state = {
+            "generated_sql": request.sql,
+            "retry_count": 0,
+            "trace_id": "manual",
+            "db_id": target_db_id,
+        }
         validation_result = sql_validation_node(validation_state)
 
         if not validation_result.get("is_valid"):
             errors = validation_result.get("validation_errors", ["Unknown validation error"])
-            raise HTTPException(400, f"SQL blocked by safety layer: {', '.join(errors)}")
+            raise HTTPException(400, f"SQL blocked by validation: {', '.join(errors)}")
 
-        # Execute
+        sanitized_sql = validation_result.get("sanitized_sql") or request.sql
+
+        # 2. Guardrails verification
+        from app.agents.guardrails import guardrail_check_node
+        guardrail_state = {
+            "sanitized_sql": sanitized_sql,
+            "trace_id": "manual",
+            "db_id": target_db_id,
+        }
+        guardrail_res = guardrail_check_node(guardrail_state, db_pool=target_pool)
+        if guardrail_res.get("error"):
+            raise HTTPException(400, f"SQL blocked by guardrails: {guardrail_res['error']}")
+
+        # 3. Execute on target database pool
         from app.agents.execution import execution_node
-        exec_state = {**validation_result, "trace_id": "manual"}
-        exec_result = execution_node(exec_state, orchestrator.db_pool)
+        exec_state = {
+            **validation_result,
+            "sanitized_sql": sanitized_sql,
+            "trace_id": "manual",
+            "db_id": target_db_id,
+        }
+        exec_result = execution_node(exec_state, target_pool)
 
         if exec_result.get("error"):
             raise HTTPException(400, exec_result["error"])
 
+        # 4. Result summary & Visualization
+        from app.agents.result_summary import result_summary_node
+        from app.agents.visualization import visualization_node
+
+        state_for_summary = {
+            **exec_result,
+            "user_query": "Manual SQL execution",
+            "sanitized_sql": sanitized_sql,
+            "trace_id": "manual",
+            "db_id": target_db_id,
+        }
+        summary_res = result_summary_node(state_for_summary, getattr(orchestrator, "llm_router", None))
+        viz_res = visualization_node(state_for_summary)
+
+        message = summary_res.get("friendly_message") or f"Query executed successfully. {exec_result.get('row_count', 0)} rows returned."
+
         return QueryResult(
             trace_id="manual",
             question="Manual SQL execution",
-            sql=request.sql,
-            message=f"Query executed successfully. {exec_result.get('row_count', 0)} rows returned.",
+            sql=sanitized_sql,
+            message=message,
             data=exec_result.get("query_results", []),
             row_count=exec_result.get("row_count", 0),
             column_names=exec_result.get("column_names", []),
             execution_time_ms=exec_result.get("execution_time_ms", 0),
+            chart_config=viz_res.get("chart_config"),
+            chart_type=viz_res.get("chart_type"),
+            insights=viz_res.get("insights", []),
+            follow_ups=viz_res.get("follow_up_questions", []),
         )
 
     @router.post("/explain", response_model=ExplainResponse)

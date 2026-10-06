@@ -137,6 +137,12 @@ class DatabaseRegistry:
             entry["pool"] = SQLitePool(entry["path"])
             logger.info("sqlite_pool_lazy_initialized", db_id=db_id)
 
+        # Lazy initialization for MySQL pools
+        if entry["pool"] is None and entry["dialect"] == "mysql":
+            from app.db.connection import DatabasePool
+            entry["pool"] = DatabasePool(entry["path"])
+            logger.info("mysql_pool_lazy_initialized", db_id=db_id)
+
         return entry["pool"]
 
     def get_dialect(self, db_id: str) -> str:
@@ -190,6 +196,16 @@ def get_database_registry() -> DatabaseRegistry:
         try:
             from app.config import get_settings
             settings = get_settings()
+
+            use_sqlite_ecom = os.getenv("PLAINSQL_USE_SQLITE_ECOMMERCE", "").lower() in {"1", "true", "yes"}
+            if settings.resolved_ecommerce_db_uri and not use_sqlite_ecom:
+                _registry_instance.register(
+                    "E_commerce",
+                    pool=None,
+                    dialect="mysql",
+                    path=settings.resolved_ecommerce_db_uri,
+                )
+
             if getattr(settings, "SPIDER_DB_DIR", None):
                 _registry_instance.discover_sqlite_databases(settings.SPIDER_DB_DIR, lazy=True)
         except Exception as e:

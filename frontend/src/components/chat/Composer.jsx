@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowUp, Loader2, Sparkles, X } from 'lucide-react';
+import { ArrowUp, Loader2, X } from 'lucide-react';
 import useChatStore from '../../store/useChatStore';
 
-const QUICK_PROMPTS = [
-  { text: 'ARR by segment this quarter', label: 'ARR' },
-  { text: 'Churn risk with open P1 tickets', label: 'Churn' },
+const SAAS_QUICK_PROMPTS = [
+  { text: 'Show net revenue retention by customer segment for the last 4 quarters', label: 'NRR by Segment' },
+  { text: 'Churn risk with open P1 tickets', label: 'Churn Risk' },
   { text: 'Slowest SQL executions this week', label: 'Performance' },
+];
+
+const ECOMMERCE_QUICK_PROMPTS = [
+  { text: 'What are the top 5 product categories by sales?', label: 'Top Categories' },
+  { text: 'Find top 5 customer cities by total orders', label: 'Top Cities' },
+  { text: 'Find average freight value for delivered orders', label: 'Delivered Freight' },
 ];
 
 export default function Composer({ onSubmit }) {
   const isSending = useChatStore(s => s.isSending);
+  const selectedDbId = useChatStore(s => s.selectedDbId);
+  const quickPrompts = selectedDbId === 'E_commerce' ? ECOMMERCE_QUICK_PROMPTS : SAAS_QUICK_PROMPTS;
   const [value, setValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef(null);
@@ -63,7 +71,7 @@ export default function Composer({ onSubmit }) {
               <span className="text-xs text-t3 font-semibold whitespace-nowrap">Analyzing...</span>
             </motion.div>
           )}
-          {QUICK_PROMPTS.map(prompt => (
+          {quickPrompts.map(prompt => (
             <button
               key={prompt.text}
               type="button"
@@ -85,10 +93,6 @@ export default function Composer({ onSubmit }) {
                 : 'border-border-2 bg-surface-1 shadow-[0_8px_24px_rgba(0,0,0,0.15)]'
             }`}
           >
-            <div className="mb-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-surface-2 border border-border-1 transition-all">
-              <Sparkles size={13} className={value ? 'text-brand-light' : 'text-t4'} />
-            </div>
-            
             <textarea
               id="composer-input"
               ref={textareaRef}
@@ -104,7 +108,11 @@ export default function Composer({ onSubmit }) {
               }}
               disabled={isSending}
               rows={1}
-              placeholder="Ask a question about SaaS metrics, tickets, ARR, or performance..."
+              placeholder={
+                selectedDbId === 'E_commerce'
+                  ? 'Ask about E-Commerce sales, categories, orders, customers, or sellers...'
+                  : 'Ask about SaaS metrics, revenue retention, tickets, ARR, or performance...'
+              }
               className="min-h-[24px] flex-1 resize-none bg-transparent text-sm leading-relaxed text-white outline-none placeholder:text-t4 disabled:opacity-50 font-medium"
               aria-label="Type your query"
             />
