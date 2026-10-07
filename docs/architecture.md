@@ -1,7 +1,7 @@
-# PlainSQL — Complete System Architecture Specification
+# DataPilot — Complete System Architecture Specification
 
 ## Executive Summary
-**PlainSQL** is a production-oriented enterprise AI Data Analyst and agentic Text-to-SQL platform built for multi-database enterprise environments. The system transforms natural-language inquiries into safe, dialect-aware, factually grounded SQL queries across SQLite, MySQL, and cloud-scale relational stores.
+**DataPilot** is a production-oriented enterprise AI Data Analyst that enables users to query multi-database environments in natural language, generating safe, dialect-aware, factually grounded SQL, analytics, and interactive visualizations. Text-to-SQL serves as its core query engine, backed by schema-aware hybrid RAG, business knowledge, and AST guardrails.
 
 ---
 

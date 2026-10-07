@@ -1,8 +1,8 @@
-# PlainSQL — Production-Oriented Enterprise AI Data Analyst Platform
+# DataPilot — Agentic AI Data Analyst
 
-> **PlainSQL** is a production-oriented enterprise AI Data Analyst and agentic Text-to-SQL platform that enables non-technical business teams to query multi-database architectures safely, accurately, and deterministically using natural language.
+> **DataPilot** is an agentic AI Data Analyst that enables users to ask business questions in natural language, safely query structured databases, and receive grounded answers, analytics, and visualizations. Text-to-SQL serves as its core query engine, orchestrated with enterprise business knowledge, AST guardrails, and automated analytics.
 
-[![CI](https://github.com/LalitChaudhari851/PlainSQL/actions/workflows/ci.yml/badge.svg)](https://github.com/LalitChaudhari851/PlainSQL/actions)
+[![CI](https://github.com/LalitChaudhari851/DataPilot-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/LalitChaudhari851/DataPilot-AI/actions)
 ![Tests](https://img.shields.io/badge/Tests-354%20passed-brightgreen)
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
@@ -20,7 +20,7 @@ Traditional business intelligence pipelines suffer from severe bottlenecks:
 - **Security Vulnerabilities**: Naive Text-to-SQL bots execute unchecked user queries, exposing databases to destructive DDL, SQL injection, and data leaks.
 - **Ambiguity & Disconnect**: Queries like *"Show sales by region"* are ambiguous—does "sales" mean Gross Merchandise Value (GMV), net revenue, or total units sold?
 
-**PlainSQL solves this** through an agentic multi-stage architecture featuring **Hybrid Schema RAG**, **Enterprise Business Glossary guidance**, **Interactive Confidence-Aware Clarification**, **AST-based SQL guardrails**, and **dialectic multi-database execution**.
+**DataPilot solves this** through an agentic multi-stage architecture featuring **Hybrid Schema RAG**, **Enterprise Business Glossary guidance**, **Interactive Confidence-Aware Clarification**, **AST-based SQL guardrails**, and **dialectic multi-database execution**.
 
 ---
 
@@ -77,7 +77,7 @@ graph TD
 ## 3. Core AI Engine & Technical Capabilities
 
 ### A. Multi-Agent LangGraph Orchestration
-Instead of fragile monolithic prompts, PlainSQL runs an 8-stage state graph with conditional branching, retry loops, and cycle bounds that eliminate infinite recursions.
+Instead of fragile monolithic prompts, DataPilot runs an 8-stage state graph with conditional branching, retry loops, and cycle bounds that eliminate infinite recursions.
 
 ### B. Hybrid Schema RAG
 - **Dense Vector Search**: ChromaDB embeddings indexing schema metadata, technical descriptions, and relationships.
@@ -111,7 +111,7 @@ Instead of fragile monolithic prompts, PlainSQL runs an 8-stage state graph with
 
 Measured on the **100-query comprehensive production benchmark** spanning 20 functional categories across 8 databases in deterministic evaluation mode (`PLAINSQL_EVAL_MODE=true`):
 
-| Evaluation Metric | Baseline (Zero-Shot) | Final PlainSQL | Improvement |
+| Evaluation Metric | Baseline (Zero-Shot) | DataPilot | Improvement |
 |---|---|---|---|
 | **SQL Validity Rate** | 78.00% | **94.44%** | **+16.44%** |
 | **Execution Success Rate** | 62.10% | **90.00%** | **+27.90%** |
@@ -159,8 +159,8 @@ python backend/demo_flow.py
 
 ### 1. Clone & Configure
 ```bash
-git clone https://github.com/LalitChaudhari851/PlainSQL.git
-cd PlainSQL
+git clone https://github.com/LalitChaudhari851/DataPilot-AI.git
+cd DataPilot-AI
 
 # Copy and configure environment variables
 cp .env.example .env

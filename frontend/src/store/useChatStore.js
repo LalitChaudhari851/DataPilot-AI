@@ -106,7 +106,7 @@ const useChatStore = create((set, get) => ({
   availableDatabases: [
     {
       db_id: 'default',
-      name: 'PlainSQL SaaS',
+      name: 'DataPilot SaaS',
       dialect: 'mysql',
       description: 'Production SaaS schema (accounts, subscriptions, invoices, 22 tables)',
       table_count: 22,
@@ -136,7 +136,7 @@ const useChatStore = create((set, get) => ({
         })
         .catch(() => {});
     });
-    const dbName = dbId === 'E_commerce' ? 'E-Commerce (Spider)' : 'PlainSQL SaaS';
+    const dbName = dbId === 'E_commerce' ? 'E-Commerce (Spider)' : 'DataPilot SaaS';
     get().addToast(`Switched active context to ${dbName} (TiDB Cloud)`, 'info');
   },
 

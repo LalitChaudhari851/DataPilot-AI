@@ -42,7 +42,7 @@ CHAT_EXACT = {
     "see ya", "later", "yes", "no", "yep", "nope", "sure", "nah",
     "help", "help me", "what can you do", "who are you", "what are you",
     "how are you", "how do you work", "how does this work",
-    "tell me about yourself", "what is this", "what is plainsql",
+    "tell me about yourself", "what is this", "what is plainsql", "what is datapilot",
 }
 
 CHAT_PREFIXES = {
@@ -185,15 +185,15 @@ def build_chat_response(user_query: str) -> str:
 
     if any(kw in query for kw in ("what can you do", "what do you do", "how do you work", "how does this work", "help", "what can i ask", "how do i use")):
         return (
-            "I'm PlainSQL, your data assistant. Ask me a database question in plain "
+            "I'm DataPilot, your Agentic AI Data Analyst. Ask me a database question in plain "
             "English and I can generate safe read-only SQL, run it, and summarize the result. "
             "Try: 'Show top 5 employees by salary' or 'Total sales by region'."
         )
 
-    if any(kw in query for kw in ("who are you", "what are you", "tell me about you", "what is plainsql", "what is this")):
+    if any(kw in query for kw in ("who are you", "what are you", "tell me about you", "what is plainsql", "what is datapilot", "what is this")):
         return (
-            "I'm PlainSQL, an assistant for querying your database with natural language. "
-            "Describe the data you want and I'll handle the SQL path."
+            "I'm DataPilot, an agentic AI Data Analyst for querying your database with natural language. "
+            "Describe the data you want and I'll handle the SQL generation, execution, and analytics."
         )
 
     if any(kw in query for kw in ("thanks", "thank", "thx", "ty")):

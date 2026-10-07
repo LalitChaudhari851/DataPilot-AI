@@ -26,6 +26,7 @@
     {"text": "who are you", "label": "chat"},
     {"text": "how do you work", "label": "chat"},
     {"text": "what is plainsql", "label": "chat"},
+    {"text": "what is datapilot", "label": "chat"},
     {"text": "tell me about yourself", "label": "chat"},
     {"text": "help me", "label": "chat"},
     {"text": "what can I ask you", "label": "chat"},

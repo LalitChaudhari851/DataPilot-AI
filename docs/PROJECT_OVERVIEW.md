@@ -1,7 +1,7 @@
-# PlainSQL — Project Portfolio & AI Engineering Overview
+# DataPilot — Project Portfolio & AI Engineering Overview
 
-## What is PlainSQL?
-**PlainSQL** is a production-grade enterprise AI Data Analyst and agentic Text-to-SQL platform designed to bridge non-technical business users with large-scale relational databases. Built with a focus on reliability, security, multi-database support, and sub-second performance, PlainSQL transforms natural-language queries into dialect-compliant, strictly validated, and factually grounded SQL results.
+## What is DataPilot?
+**DataPilot** is a production-grade enterprise AI Data Analyst that enables users to ask business questions in natural language, safely query structured databases, and receive grounded answers, analytics, and visualizations. Text-to-SQL serves as its core query engine, augmented with enterprise business knowledge, AST guardrails, and automated analytics.
 
 ---
 
@@ -52,7 +52,7 @@
 
 ## Verified Production Metrics (Resume-Ready)
 
-> The following metrics were empirically measured using PlainSQL's comprehensive 100-query production benchmark across multi-database environments:
+> The following metrics were empirically measured using DataPilot's comprehensive 100-query production benchmark across multi-database environments:
 
 | Engineering Dimension | Verified Empirical Metric | Measurement Details |
 |---|---|---|

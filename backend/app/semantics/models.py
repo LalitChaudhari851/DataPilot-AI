@@ -1,5 +1,5 @@
 """
-Semantic Models for PlainSQL Business Semantic Layer.
+Semantic Models for DataPilot Business Semantic Layer.
 """
 
 from enum import Enum

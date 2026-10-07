@@ -1,5 +1,5 @@
 """
-Persistent Semantic Learning & Controlled Promotion Layer for PlainSQL.
+Persistent Semantic Learning & Controlled Promotion Layer for DataPilot.
 Records user-confirmed clarification events, tracks repetition and confidence thresholds,
 and safely creates promotion candidates without prematurely altering enterprise definitions.
 """

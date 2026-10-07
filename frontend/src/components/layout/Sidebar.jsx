@@ -221,12 +221,12 @@ export default function Sidebar({ open, onClose }) {
               className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg cursor-pointer bg-glow border-glow"
               style={{ background: 'linear-gradient(135deg, var(--brand), var(--brand-cyan))' }}
             >
-              <span className="text-white font-extrabold text-sm tracking-tight">S</span>
+              <span className="text-white font-extrabold text-sm tracking-tight">D</span>
             </div>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-white text-sm leading-tight tracking-tight">PlainSQL</p>
-                <p className="text-[10px] text-t4 font-semibold uppercase tracking-wider">AI Data Platform</p>
+                <p className="font-bold text-white text-sm leading-tight tracking-tight">DataPilot</p>
+                <p className="text-[10px] text-t4 font-semibold uppercase tracking-wider">Agentic AI Data Analyst</p>
               </div>
             )}
           </div>

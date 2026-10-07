@@ -107,8 +107,8 @@ const Component = {
     return `
       <div class="sidebar-head">
         <div class="brand">
-          <div class="brand-mark">SQL</div>
-          <div class="brand-copy"><strong>PlainSQL</strong><span>Text-to-SQL workspace</span></div>
+          <div class="brand-mark">DP</div>
+          <div class="brand-copy"><strong>DataPilot</strong><span>Agentic AI Data Analyst</span></div>
         </div>
         <button class="new-chat" type="button" data-action="new-chat">+ New chat</button>
       </div>
@@ -165,7 +165,7 @@ const Component = {
     ];
     return `
       <div class="welcome">
-        <div class="welcome-badge">PlainSQL</div>
+        <div class="welcome-badge">DataPilot</div>
         <h2>What do you want to <span>query?</span></h2>
         <p>Ask in plain English. I'll generate safe SQL, execute it, and show you the results.</p>
         <div class="prompt-grid">
@@ -854,7 +854,7 @@ function downloadCSV(rows) {
   const csv = [cols.join(","), ...rows.map(row => cols.map(col => `"${String(row[col] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  link.download = "plainsql-result.csv";
+  link.download = "datapilot-result.csv";
   link.click();
   URL.revokeObjectURL(link.href);
   toast("CSV exported", "success");

@@ -1,5 +1,5 @@
 """
-Business Knowledge Loader & Validator for PlainSQL.
+Business Knowledge Loader & Validator for DataPilot.
 Loads, parses, validates, and normalizes enterprise business glossaries from YAML and JSON.
 Ensures strict db_id isolation and verifies referenced schema objects against database pools.
 """

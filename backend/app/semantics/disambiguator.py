@@ -1,5 +1,5 @@
 """
-Semantic Column Disambiguator for PlainSQL.
+Semantic Column Disambiguator for DataPilot.
 Analyzes query phrasing and column metadata/values to resolve semantic ambiguities.
 """
 

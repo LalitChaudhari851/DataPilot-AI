@@ -29,7 +29,7 @@ export default function MetaBadges({ intent, executionTimeMs, rowCount, dbId }) 
   const colors = intentColors[intent?.toLowerCase()] ?? intentColors.default;
   const badges = [];
 
-  const dbName = dbId === 'E_commerce' ? 'E-Commerce' : 'PlainSQL SaaS';
+  const dbName = dbId === 'E_commerce' ? 'E-Commerce' : 'DataPilot SaaS';
   badges.push({
     icon: Database,
     label: 'DB',

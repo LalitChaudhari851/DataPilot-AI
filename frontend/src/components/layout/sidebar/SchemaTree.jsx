@@ -59,7 +59,7 @@ const SchemaTree = memo(function SchemaTree({
   const availableDatabases = useChatStore(s => s.availableDatabases);
 
   const currentDb = availableDatabases.find(d => d.db_id === selectedDbId) || {
-    name: selectedDbId === 'E_commerce' ? 'E-Commerce (Spider)' : 'PlainSQL SaaS',
+    name: selectedDbId === 'E_commerce' ? 'E-Commerce (Spider)' : 'DataPilot SaaS',
     table_count: schemaTables.length,
   };
 

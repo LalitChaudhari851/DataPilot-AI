@@ -1,5 +1,5 @@
 """
-PlainSQL Business Semantic Layer.
+DataPilot Business Semantic Layer.
 """
 
 try:

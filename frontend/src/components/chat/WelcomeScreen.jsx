@@ -67,7 +67,7 @@ export default function WelcomeScreen({ onPrompt }) {
           }}
         >
           <Sparkles size={12} className="text-brand-light" />
-          AI-driven SQL reasoning & execution engine
+          Agentic AI Data Analyst
         </motion.div>
 
         <motion.h2
@@ -78,7 +78,7 @@ export default function WelcomeScreen({ onPrompt }) {
         >
           Ask the business question.
           <br />
-          <span className="text-gradient">PlainSQL constructs the answer.</span>
+          <span className="text-gradient">DataPilot constructs the answer.</span>
         </motion.h2>
 
         <motion.p

@@ -1,5 +1,5 @@
 """
-Ambiguity Detector & Clarification Resolver for PlainSQL (Phase 10).
+Ambiguity Detector & Clarification Resolver for DataPilot (Phase 10).
 Analyzes queries against semantic metadata to detect semantic collisions,
 evaluates confidence thresholds, and resolves user clarification responses.
 """

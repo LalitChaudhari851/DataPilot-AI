@@ -1,7 +1,7 @@
-# PlainSQL — Final Production Evaluation Report
+# DataPilot — Final Production Evaluation Report
 
 ## Evaluation Overview
-This report documents the empirical evaluation of PlainSQL's AI engine across a comprehensive, rigorous benchmark suite. The evaluation assesses query understanding, schema retrieval, SQL validity, database execution, semantic clarification, business glossary retrieval, database safety, latency distributions, and concurrency resilience.
+This report documents the empirical evaluation of DataPilot's AI engine across a comprehensive, rigorous benchmark suite. The evaluation assesses query understanding, schema retrieval, SQL validity, database execution, semantic clarification, business glossary retrieval, database safety, latency distributions, and concurrency resilience.
 
 - **Benchmark Dataset Size**: 100 queries across 20 distinct enterprise categories (A through T, 5 queries each).
 - **Databases Evaluated**: Multi-database registry spanning SQLite (Chinook, Northwind, AdventureWorks, E_commerce, Pagila, Baseball, Airlines, IPL) and MySQL.

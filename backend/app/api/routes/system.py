@@ -110,11 +110,11 @@ def create_system_router(auth_service, auth_dep, db_pool, rag_retriever, llm_rou
         registry = get_database_registry()
         
         db_items = []
-        # 1. PlainSQL SaaS (default)
+        # 1. DataPilot SaaS (default)
         saas_tables = db_pool.get_tables()
         db_items.append(DatabaseItem(
             db_id="default",
-            name="PlainSQL SaaS",
+            name="DataPilot SaaS",
             dialect="mysql",
             description="Production SaaS dataset (accounts, subscriptions, invoices, 22 tables)",
             table_count=len(saas_tables),

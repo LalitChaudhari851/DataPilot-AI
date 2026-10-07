@@ -212,7 +212,7 @@ def print_report(results: list[EvalResult], json_output: bool = False):
             categories[cat]["passed"] += 1
 
     print("\n" + "=" * 60)
-    print("  PlainSQL Evaluation Report")
+    print("  DataPilot Evaluation Report")
     print("=" * 60)
     print(f"\n  Total Cases:    {total}")
     print(f"  Passed:         {passed} ({passed/total*100:.0f}%)" if total else "  Passed: 0")
@@ -241,7 +241,7 @@ def print_report(results: list[EvalResult], json_output: bool = False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="PlainSQL Evaluation Harness")
+    parser = argparse.ArgumentParser(description="DataPilot Evaluation Harness")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 

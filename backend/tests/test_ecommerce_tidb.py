@@ -26,6 +26,24 @@ from app.semantics.loader import BusinessKnowledgeLoader
 from app.agents.guardrails import OutputGuardrail
 
 
+def _is_ecommerce_tidb_live():
+    try:
+        reg = get_database_registry()
+        if not reg.has_database("E_commerce"):
+            return False
+        pool = reg.get_pool("E_commerce")
+        tables = pool.get_tables()
+        return len(tables) >= 11
+    except Exception:
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _is_ecommerce_tidb_live(),
+    reason="Requires live TiDB Cloud ecommerce database with 11 tables"
+)
+
+
 @pytest.fixture(scope="module")
 def settings():
     return get_settings()

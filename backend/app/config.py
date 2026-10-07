@@ -1,5 +1,5 @@
 """
-PlainSQL Configuration — Pydantic Settings with environment-based config.
+DataPilot Configuration — Pydantic Settings with environment-based config.
 All secrets loaded from .env, with sensible defaults for local dev.
 """
 
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # ── App ──────────────────────────────────────────────
-    APP_NAME: str = "PlainSQL"
+    APP_NAME: str = "DataPilot"
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = False
     ENV: str = Field(default="development", description="development | staging | production")

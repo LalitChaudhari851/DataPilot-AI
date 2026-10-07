@@ -1,6 +1,6 @@
-# PlainSQL — System Architecture
+# DataPilot — System Architecture
 
-> Production-grade Text-to-SQL system using multi-agent orchestration, hybrid RAG, and LLM-powered SQL generation.
+> DataPilot is an agentic AI Data Analyst that converts natural language into grounded answers, safe SQL queries, and interactive visualizations. Text-to-SQL serves as its core query engine, backed by multi-agent orchestration, hybrid RAG, and strict guardrails.
 
 ---
 

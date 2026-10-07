@@ -1,1 +1,1 @@
-# Evaluation module for PlainSQL
+# Evaluation module for DataPilot

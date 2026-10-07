@@ -19,7 +19,7 @@ function downloadCSV(rows) {
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'plainsql_result.csv';
+  a.download = 'datapilot_result.csv';
   a.click();
 }
 

@@ -16,15 +16,15 @@ const CHAT_RULES = [
   { re: /^(bye|goodbye|see you|cya|later)[\s!.]*$/i, type: 'farewell' },
   { re: /^good (morning|afternoon|evening|night)[\s!.]*$/i, type: 'greeting' },
   { re: /^(ok|okay|alright|sounds good|great|perfect|cool|nice|awesome)[\s!.]*$/i, type: 'ack' },
-  { re: /^(who are you|what are you|what is plainsql)\??$/i, type: 'identity' },
+  { re: /^(who are you|what are you|what is (plainsql|datapilot))\??$/i, type: 'identity' },
   { re: /^(what can you do|help me|help)\??[\s!.]*$/i, type: 'capabilities' },
 ];
 
 const CHAT_RESPONSES = {
   greeting: [
-    "Hello. I'm **PlainSQL**, your AI data copilot. Ask a business question and I will retrieve schema context, generate safe SQL, execute it, and explain the result.",
+    "Hello. I'm **DataPilot**, your Agentic AI Data Analyst. Ask a business question and I will retrieve schema context, generate safe SQL, execute it, and explain the result.",
     'Ready when you are. Try *"Show net revenue retention by segment"* and I will show the SQL, trace, result table, and chart.',
-    'PlainSQL here. I turn natural language into validated SQL with visible RAG and execution reasoning.',
+    'DataPilot here. I turn natural language into validated SQL with visible RAG and execution reasoning.',
   ],
   thanks: [
     "You're welcome. Send me the next business question when you want to go deeper.",
@@ -40,7 +40,7 @@ const CHAT_RESPONSES = {
     'Perfect. I can keep going with a follow-up analysis or a new table context.',
   ],
   identity: [
-    "I'm **PlainSQL**, an enterprise AI platform that converts natural language into SQL.\n\nI use a **hybrid RAG + LLM pipeline** to understand database schema and generate accurate, safe SQL queries.\n\n**Stack:** Vector Search, Multi-Agent Orchestration, LLM Routing, Safety Validation.",
+    "I'm **DataPilot**, an agentic AI Data Analyst that converts natural language into grounded answers, safe SQL queries, and interactive visualizations.\n\nI use a **hybrid RAG + LLM pipeline** to understand database schema and generate accurate, safe SQL queries.\n\n**Stack:** Vector Search, Multi-Agent Orchestration, LLM Routing, Safety Validation.",
   ],
   capabilities: [
     'I can help you:\n- **Query** your database in plain English\n- **Generate** safe, optimized SQL automatically\n- **Visualize** results with charts and tables\n- **Explain** the SQL I generate\n- **Analyze** trends and generate insights\n\nTry: *"Show net revenue retention by customer segment"* or *"Which accounts have churn risk?"*',
@@ -76,7 +76,7 @@ export async function fetchDatabases() {
       databases: [
         {
           db_id: 'default',
-          name: 'PlainSQL SaaS',
+          name: 'DataPilot SaaS',
           dialect: 'mysql',
           description: 'Production SaaS dataset (accounts, subscriptions, invoices, 22 tables)',
           table_count: 22,

@@ -1,4 +1,4 @@
-# PlainSQL Enterprise — Deployment Runbook
+# DataPilot Enterprise — Deployment Runbook
 
 ## Quick Start (Local Development)
 

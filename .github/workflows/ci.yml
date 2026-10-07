@@ -67,6 +67,10 @@ jobs:
       - name: Install Dependencies
         run: pip install -r backend/requirements.txt
       
+      - name: Seed Database Schema
+        run: |
+          mysql -h 127.0.0.1 -u root -ptestpassword chatbot < db.sql
+      
       - name: Run Tests
         env:
           DB_URI: mysql+pymysql://root:testpassword@127.0.0.1:3306/chatbot

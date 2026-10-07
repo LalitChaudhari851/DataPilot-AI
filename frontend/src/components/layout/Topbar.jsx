@@ -38,7 +38,7 @@ export default function Topbar({ onMenuClick }) {
 
   const currentDb = availableDatabases.find(d => d.db_id === selectedDbId) || {
     db_id: selectedDbId,
-    name: selectedDbId === 'E_commerce' ? 'E-Commerce (Spider)' : 'PlainSQL SaaS',
+    name: selectedDbId === 'E_commerce' ? 'E-Commerce (Spider)' : 'DataPilot SaaS',
     table_count: selectedDbId === 'E_commerce' ? 11 : 22,
     dialect: 'mysql',
     target: selectedDbId === 'E_commerce' ? 'TiDB Cloud (ecommerce)' : 'TiDB Cloud (chatbot)',

@@ -1,4 +1,4 @@
-# PlainSQL Enterprise Business Glossary
+# DataPilot Enterprise Business Glossary
 # Defines database-scoped business concepts, preferred schema mappings, and semantic hints.
 # Strictly partitioned by database_id to prevent cross-database knowledge leakage.
 

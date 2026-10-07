@@ -1,5 +1,5 @@
 """
-Semantic Schema Analyzer for PlainSQL.
+Semantic Schema Analyzer for DataPilot.
 Infers semantic roles, extracts safe distinct values, and derives business meanings.
 """
 

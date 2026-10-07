@@ -1,5 +1,5 @@
 """
-PlainSQL Enterprise — FastAPI Application Factory.
+DataPilot Enterprise — FastAPI Application Factory.
 Wires all components: agents, LLM router, RAG, auth, observability, and API routes.
 Also serves the frontend at / so everything runs from one URL.
 """
@@ -569,8 +569,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
     is_production = settings.ENV == "production"
     app = FastAPI(
-        title="PlainSQL Enterprise API",
-        description="Production-grade Text-to-SQL multi-agent system",
+        title="DataPilot Enterprise API",
+        description="DataPilot — Agentic AI Data Analyst API",
         version=settings.APP_VERSION,
         lifespan=lifespan,
         # Disable API docs in production to prevent schema disclosure
