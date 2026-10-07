@@ -214,8 +214,9 @@ def _classify_columns(columns: List[str], results: List[dict]) -> Dict[str, List
             continue
 
         # 2. Time fields
-        is_year = col_lower in ["yr", "year"] or all(isinstance(v, int) and 1980 <= v <= 2099 for v in sample_vals if isinstance(v, (int, float)))
-        is_quarter = col_lower in ["qtr", "quarter"] or ("quarter" in col_lower and all(1 <= _safe_float(v) <= 4 for v in sample_vals))
+        num_vals = [v for v in sample_vals if isinstance(v, (int, float))]
+        is_year = col_lower in ["yr", "year"] or (bool(num_vals) and all(isinstance(v, int) and 1980 <= v <= 2099 for v in num_vals))
+        is_quarter = col_lower in ["qtr", "quarter"] or ("quarter" in col_lower and bool(sample_vals) and all(1 <= _safe_float(v) <= 4 for v in sample_vals))
         is_time = any(t in col_lower for t in ["date", "time", "month", "day", "week", "created", "updated"]) or is_year or is_quarter
         if is_time:
             time_cols.append(col)
