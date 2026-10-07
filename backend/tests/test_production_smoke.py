@@ -26,6 +26,22 @@ from app.agents.orchestrator import AgentOrchestrator
 from app.agents.sql_validation import sql_validation_node
 
 
+def _is_production_db_live():
+    try:
+        settings = get_settings()
+        pool = DatabasePool(settings.DB_URI)
+        tables = pool.get_tables()
+        return "accounts" in tables
+    except Exception:
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _is_production_db_live(),
+    reason="Requires live production database with accounts table"
+)
+
+
 @pytest.fixture(scope="module")
 def pipeline():
     settings = get_settings()
